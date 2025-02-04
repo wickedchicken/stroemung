@@ -1,0 +1,13 @@
+[package]
+name = "stroemung"
+version = "0.1.0"
+edition = "2021"
+description = "A Computational Fluid Dynamics (CFD) simulator in Rust"
+repository = "https://github.com/wickedchicken/stroemung"
+license = "MIT"
+categories = ["mathematics", "science", "simulation"]
+keywords = ["cfd", "fluid-dynamics", "navier-stokes", "simulation"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
