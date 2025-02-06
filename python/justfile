@@ -1,0 +1,13 @@
+#!/usr/bin/env just --justfile
+
+test:
+    pytest
+
+sync:
+    pip-sync requirements.txt requirements-dev.txt
+
+update:
+    pip-compile --strip-extras --upgrade requirements.in --output-file requirements.txt
+    pip-compile --strip-extras --upgrade requirements-dev.in --output-file requirements-dev.txt
+
+update-and-sync: update sync
