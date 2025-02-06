@@ -22,3 +22,7 @@ target/
 
 .cargo-ok
 .DS_Store
+.direnv
+.envrc
+.pytest_cache
+__pycache__
