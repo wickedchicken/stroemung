@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import pytest
 import generate_test_data
 
 
