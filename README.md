@@ -14,6 +14,18 @@ A Computational Fluid Dynamics (CFD) simulator in Rust
   [this](https://www.rust-lang.org/tools/install) guide.
 * run `cargo install stroemung`
 
+## Running
+
+```sh
+cargo run
+```
+
+## Generating test data
+
+There is a Python script in the [`python/`](python/) directory which will generate
+test data from the [NaSt2D][nast2d] program. See [`python/README.md`](python/README.md)
+for more details.
+
 ## License
 
 Licensed under the [MIT license](LICENSE).
@@ -25,3 +37,5 @@ for inclusion in the work by you, as defined in the MIT license, shall be
 licensed as above, without any additional terms or conditions.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+[nast2d]: https://ins.uni-bonn.de/content/software-nast2d

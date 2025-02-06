@@ -135,6 +135,16 @@ just update-and-sync
 
 Tests can be run with `pytest`, or `just test`.
 
+#### Linting/formatting
+
+Linting and formatting is done with `ruff`. Run
+
+```sh
+just check
+```
+
+to check everything.
+
 #### Python version
 
 The version of Python used by CI is specified by `.python-version`.

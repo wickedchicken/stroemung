@@ -1,0 +1,26 @@
+name: Python CI # Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'python/**'
+
+jobs:
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: 'python/.python-version'
+      - run: just -f python/justfile --unstable --fmt --check
+      - run: pip install pip-tools
+      - run: just -f python/justfile sync
+      - run: just -f python/justfile check
+      - run: just -f python/justfile test
