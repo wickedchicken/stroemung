@@ -1,0 +1,50 @@
+{{ problem_type | lower }}		problem: flow past an obstacle
+
+{{ inputfile }} 		infile: file to read initial values from
+{{ outputfile }}  		outfile: file to write final values
+
+{{ xlength }}		xlength: domain size in x-direction
+{{ ylength }}		ylength: domain size in y-direction
+{{ imax }}		imax: number of interior cells in x-direction
+{{ jmax }}		jmax: number of interior cells in y-direction
+
+{{ t_end }}		t_end: final time
+{{ t_delta }}		delt: time stepsize
+0.5             tau:  safety factor for time stepsize control
+
+0.1		del_trace: time stepsize for writing particle positions for particle tracing
+0.01		del_inj:   time stepsize for injecting particles
+0.1		del_streak:time stepsize for writing particle positions of streaklines
+1.0 		del_vec:   time stepsize for writing velocity and pressure values
+
+{{ vecfile }}	file to write velocity and pressure values
+none 		file to write particle positions for particle tracing
+none     	file to write particle positions of streaklines
+
+30		N: number of particlelines
+0.1		pos1x: coordinates of the final points
+1.5		pos1y: of the line on which
+0.1		pos2x: particles for particle tracing
+2.5		pos2y: and streaklines are injected
+
+{{ itermax }}		itermax: maximal number of pressure iterations in one time step
+{{ eps }}		eps : stopping tolerance for pressure iteration
+{{ omega }}		omg : relaxation parameter for SOR iteration
+{{ gamma }}		gamma: upwind differencing factor   
+2               p_bound: flag for the treatment of the pressure boundary conditions
+                         1 = modify the equation at the boundary (book p. 37)
+                         2 = copy the pressure values near the boundary (book p. 39)
+
+{{ reynolds }}	       	Re: Reynolds number
+1.0		Pr: Prandtl number
+0.0    		beta: coefficient of volume expansion
+0.0		GX:            
+0.0		GY: volume forces, e.g. gravity
+{{ ui }}		UI:
+{{ vi }}		VI: initial values
+0.0             TI:
+
+3		wW: flags for boundary conditions
+3		wO:   1 = slip         3 = inflow/outflow
+2		wN:   2 = no-slip      4 = periodic
+2		wS:

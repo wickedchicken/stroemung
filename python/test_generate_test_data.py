@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import tempfile
+
 from pathlib import Path
 
 
@@ -47,3 +49,85 @@ def test_rust_grid_output():
     expected = load_file(Path(TEST_DATA_DIR, filename + "_rust_expected.json"))
 
     assert parsed_output == expected
+
+
+def test_config_load():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        config_file = Path(temp_dir, "config.json")
+
+        with open(config_file, "w") as f:
+            data = {
+                "problem_type": "circle",
+                "inputfile": "none",
+                "xlength": 22.0,
+                "ylength": 4.1,
+                "imax": 110,
+                "jmax": 20,
+                "t_end": 60.0,
+                "t_delta": 0.003,
+                "vecfile": "none",
+                "itermax": 100,
+                "eps": 0.001,
+                "omega": 1.7,
+                "gamma": 0.9,
+                "reynolds": 100.0,
+                "ui": 1.0,
+                "vi": 0.0,
+            }
+            json.dump(data, f)
+
+        parsed_struct = generate_test_data.load_config_from_json(config_file)
+
+        expected = generate_test_data.SimulationInput(
+            problem_type=generate_test_data.ProblemType.CIRCLE,
+            inputfile="none",
+            xlength=22.0,
+            ylength=4.1,
+            imax=110,
+            jmax=20,
+            t_end=60.0,
+            t_delta=0.003,
+            vecfile="none",
+            itermax=100,
+            eps=0.001,
+            omega=1.7,
+            gamma=0.9,
+            reynolds=100.0,
+            ui=1.0,
+            vi=0.0,
+        )
+
+        assert parsed_struct == expected
+
+
+def test_template_generation():
+    expected = Path(TEST_DATA_DIR, "template_expected.par").read_text()
+
+    simulation_input = generate_test_data.SimulationInput(
+        problem_type=generate_test_data.ProblemType.CIRCLE,
+        inputfile="none",
+        xlength=22.0,
+        ylength=4.1,
+        imax=110,
+        jmax=20,
+        t_end=60.0,
+        t_delta=0.003,
+        vecfile="none",
+        itermax=100,
+        eps=0.001,
+        omega=1.7,
+        gamma=0.9,
+        reynolds=100.0,
+        ui=1.0,
+        vi=0.0,
+    )
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        (config_filename, output_filename) = generate_test_data.generate_template(
+            simulation_input, temp_dir
+        )
+
+        result = config_filename.read_text()
+        result = result.replace(str(Path(temp_dir, "simulation.out")), "simulation.out")
+
+        assert result == expected
