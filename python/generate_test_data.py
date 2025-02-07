@@ -6,6 +6,15 @@ import struct
 from dataclasses import dataclass
 from typing import List
 
+from jinja2 import Environment, PackageLoader, select_autoescape
+
+
+JINJA_ENV = Environment(
+    loader=PackageLoader('generate_test_data', 'templates'),
+    autoescape=select_autoescape(),
+)
+
+
 @dataclass
 class SimulationOutput:
     imax: int  # Horizontal array size of inner simulation (excluding boundary)
