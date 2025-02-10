@@ -1,3 +1,8 @@
+mod grid;
+mod math;
+
+use crate::grid::SimulationGrid;
+
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -15,4 +20,6 @@ fn main() {
 
     println!("Exécute des simulations...");
     println!("Grid size {} x {}", args.x_cells, args.y_cells);
+    let grid = SimulationGrid::new(args.x_cells, args.y_cells);
+    println!("{}", grid);
 }

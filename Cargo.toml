@@ -12,3 +12,4 @@ keywords = ["cfd", "fluid-dynamics", "navier-stokes", "simulation"]
 
 [dependencies]
 clap = { version = "4.5.28", features = ["derive"] }
+ndarray = "0.16.1"
