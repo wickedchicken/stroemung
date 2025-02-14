@@ -1,32 +1,30 @@
 use std::fmt;
 
+use ndarray::Array;
+
 use crate::math::Real;
-use ndarray::{Array, Ix2};
+use crate::types::{GridArray, GridSize};
 
 #[derive(Debug)]
 pub struct SimulationGrid {
-    x_cells: usize,
-    y_cells: usize,
-    pressure: Array<Real, Ix2>,
+    size: GridSize,
+    pressure: GridArray<Real>,
 }
 
 impl SimulationGrid {
-    pub fn new(x_cells: usize, y_cells: usize) -> SimulationGrid {
+    pub fn new(size: GridSize) -> SimulationGrid {
         SimulationGrid {
-            x_cells,
-            y_cells,
-            pressure: Array::zeros((x_cells, y_cells)),
+            size,
+            pressure: Array::zeros(size),
         }
     }
 }
 
 impl std::fmt::Display for SimulationGrid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Simulation grid {}x{}\nPressure:\n{}",
-            self.x_cells, self.y_cells, self.pressure
-        )
+        writeln!(f, "Simulation grid {}x{}", self.size[0], self.size[1],)?;
+        writeln!(f, "Pressure:{}", self.pressure)?;
+        Ok(())
     }
 }
 
@@ -36,9 +34,10 @@ mod tests {
 
     #[test]
     fn grid_size() {
-        let grid = SimulationGrid::new(5, 7);
-        assert_eq!(grid.x_cells, 5);
-        assert_eq!(grid.y_cells, 7);
-        assert_eq!(grid.pressure.shape(), [5, 7]);
+        let size = [5, 7];
+        let grid = SimulationGrid::new(size);
+        assert_eq!(grid.size[0], 5);
+        assert_eq!(grid.size[1], 7);
+        assert_eq!(grid.pressure.shape(), size);
     }
 }
