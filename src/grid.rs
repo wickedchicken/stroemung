@@ -22,7 +22,6 @@ impl SimulationGrid {
 
 impl std::fmt::Display for SimulationGrid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Use `self.number` to refer to each positional data point.
         write!(
             f,
             "Simulation grid {}x{}\nPressure:\n{}",
