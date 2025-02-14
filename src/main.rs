@@ -1,5 +1,6 @@
 mod grid;
 mod math;
+mod types;
 
 use crate::grid::SimulationGrid;
 
@@ -20,6 +21,6 @@ fn main() {
 
     println!("Exécute des simulations...");
     println!("Grid size {} x {}", args.x_cells, args.y_cells);
-    let grid = SimulationGrid::new(args.x_cells, args.y_cells);
+    let grid = SimulationGrid::new([args.x_cells, args.y_cells]);
     println!("{}", grid);
 }
