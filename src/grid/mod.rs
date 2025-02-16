@@ -5,6 +5,7 @@ use std::fmt;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::cell::Cell;
 use crate::math::Real;
 use crate::types::{GridArray, GridSize};
 
@@ -12,12 +13,18 @@ use crate::types::{GridArray, GridSize};
 pub struct SimulationGrid {
     size: GridSize,
     pressure: GridArray<Real>,
+    u: GridArray<Real>,
+    v: GridArray<Real>,
+    cell_type: GridArray<Cell>,
 }
 
 impl std::fmt::Display for SimulationGrid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Simulation grid {}x{}", self.size[0], self.size[1],)?;
         writeln!(f, "Pressure:{}", self.pressure)?;
+        writeln!(f, "u:{}", self.u)?;
+        writeln!(f, "v:{}", self.v)?;
+        writeln!(f, "Cell Type:{}", self.cell_type)?;
         Ok(())
     }
 }
@@ -33,6 +40,9 @@ mod tests {
         assert_eq!(grid.size[0], 5);
         assert_eq!(grid.size[1], 7);
         assert_eq!(grid.pressure.shape(), size);
+        assert_eq!(grid.u.shape(), size);
+        assert_eq!(grid.v.shape(), size);
+        assert_eq!(grid.cell_type.shape(), size);
     }
 
     #[test]
