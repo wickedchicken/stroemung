@@ -1,11 +1,13 @@
 use std::fmt;
 
 use ndarray::Array;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::math::Real;
 use crate::types::{GridArray, GridSize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SimulationGrid {
     size: GridSize,
     pressure: GridArray<Real>,

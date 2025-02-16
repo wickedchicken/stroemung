@@ -4,6 +4,8 @@ mod types;
 
 use crate::grid::SimulationGrid;
 
+use serde_json;
+
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -23,4 +25,6 @@ fn main() {
     println!("Grid size {} x {}", args.x_cells, args.y_cells);
     let grid = SimulationGrid::new([args.x_cells, args.y_cells]);
     println!("{}", grid);
+    println!("");
+    println!("{}", serde_json::to_string(&grid).unwrap());
 }
