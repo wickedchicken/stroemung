@@ -1,6 +1,7 @@
 mod cell;
 mod grid;
 mod math;
+mod simulation;
 mod types;
 
 use crate::grid::SimulationGrid;
