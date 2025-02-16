@@ -1,3 +1,4 @@
+mod cell;
 mod grid;
 mod math;
 mod types;
