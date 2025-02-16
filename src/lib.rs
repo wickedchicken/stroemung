@@ -2,6 +2,7 @@ pub mod args;
 pub mod cell;
 pub mod grid;
 pub mod math;
+pub mod simulation;
 pub mod types;
 
 use std::fs::File;
