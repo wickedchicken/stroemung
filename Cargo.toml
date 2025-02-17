@@ -11,5 +11,5 @@ keywords = ["cfd", "fluid-dynamics", "navier-stokes", "simulation"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.5.28", features = ["derive"] }
+clap = { version = "4.5.29", features = ["derive"] }
 ndarray = "0.16.1"
