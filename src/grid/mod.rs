@@ -1,6 +1,7 @@
+pub mod presets;
+
 use std::fmt;
 
-use ndarray::Array;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -11,15 +12,6 @@ use crate::types::{GridArray, GridSize};
 pub struct SimulationGrid {
     size: GridSize,
     pressure: GridArray<Real>,
-}
-
-impl SimulationGrid {
-    pub fn new(size: GridSize) -> SimulationGrid {
-        SimulationGrid {
-            size,
-            pressure: Array::zeros(size),
-        }
-    }
 }
 
 impl std::fmt::Display for SimulationGrid {
@@ -37,7 +29,7 @@ mod tests {
     #[test]
     fn grid_size() {
         let size = [5, 7];
-        let grid = SimulationGrid::new(size);
+        let grid = presets::zeroes(size);
         assert_eq!(grid.size[0], 5);
         assert_eq!(grid.size[1], 7);
         assert_eq!(grid.pressure.shape(), size);
@@ -49,7 +41,12 @@ mod tests {
         use std::io::BufReader;
         use std::path::Path;
 
-        let test_data_directory = Path::new(file!()).parent().unwrap().join("test_data");
+        let test_data_directory = Path::new(file!())
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("test_data");
         let test_filename = test_data_directory.join("simple_grid.json");
         let result: SimulationGrid =
             serde_json::from_reader(BufReader::new(File::open(test_filename).unwrap()))
@@ -60,7 +57,7 @@ mod tests {
     #[test]
     fn serialize() {
         let size = [2, 3];
-        let grid = SimulationGrid::new(size);
+        let grid = presets::zeroes(size);
         insta::assert_json_snapshot!(grid);
     }
 }

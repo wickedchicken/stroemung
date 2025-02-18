@@ -1,6 +1,6 @@
 ---
-source: src/grid.rs
-expression: result
+source: src/grid/mod.rs
+expression: grid
 ---
 {
   "size": [
