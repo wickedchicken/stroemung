@@ -1,0 +1,25 @@
+---
+source: src/grid.rs
+expression: result
+---
+{
+  "size": [
+    2,
+    3
+  ],
+  "pressure": {
+    "v": 1,
+    "dim": [
+      2,
+      3
+    ],
+    "data": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  }
+}

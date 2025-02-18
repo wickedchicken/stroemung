@@ -44,13 +44,23 @@ mod tests {
     }
 
     #[test]
+    fn deserialize() {
+        use std::fs::File;
+        use std::io::BufReader;
+        use std::path::Path;
+
+        let test_data_directory = Path::new(file!()).parent().unwrap().join("test_data");
+        let test_filename = test_data_directory.join("simple_grid.json");
+        let result: SimulationGrid =
+            serde_json::from_reader(BufReader::new(File::open(test_filename).unwrap()))
+                .unwrap();
+        insta::assert_json_snapshot!(result);
+    }
+
+    #[test]
     fn serialize() {
         let size = [2, 3];
         let grid = SimulationGrid::new(size);
-        let serialized = serde_json::to_string(&grid).unwrap();
-        assert_eq!(
-            serialized,
-            "{\"size\":[2,3],\"pressure\":{\"v\":1,\"dim\":[2,3],\"data\":[0.0,0.0,0.0,0.0,0.0,0.0]}}"
-        );
+        insta::assert_json_snapshot!(grid);
     }
 }
