@@ -47,10 +47,6 @@ mod tests {
     fn serialize() {
         let size = [2, 3];
         let grid = SimulationGrid::new(size);
-        let serialized = serde_json::to_string(&grid).unwrap();
-        assert_eq!(
-            serialized,
-            "{\"size\":[2,3],\"pressure\":{\"v\":1,\"dim\":[2,3],\"data\":[0.0,0.0,0.0,0.0,0.0,0.0]}}"
-        );
+        insta::assert_json_snapshot!(grid);
     }
 }
