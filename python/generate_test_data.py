@@ -6,6 +6,7 @@ import struct
 from dataclasses import dataclass
 from typing import List
 
+
 @dataclass
 class SimulationOutput:
     imax: int  # Horizontal array size of inner simulation (excluding boundary)
@@ -31,10 +32,7 @@ def get_args():
 def parse_array(stream, imax, jmax):
     # For each row, take a column of numbers from the stream, put them into a
     # list, and build the outer row list out of those lists.
-    return [
-      [next(stream) for _ in range(jmax + 2)]
-      for _ in range(imax + 2)
-    ]
+    return [[next(stream) for _ in range(jmax + 2)] for _ in range(imax + 2)]
 
 
 def parse_stream(int_stream, float_stream):
@@ -60,16 +58,17 @@ def parse_stream(int_stream, float_stream):
     )
 
 
-def parse_out_file(file_obj, int_bytes=4, int_type='i'):
+def parse_out_file(file_obj, int_bytes=4, int_type="i"):
     """
     Parse the raw bytes from a NaSt2D .out file into a SimulationOutput object.
     """
+
     # Create a generator that yields floats from the raw file_obj bytestream.
     def float_stream():
         # NaSt2D outfiles use C doubles, which are 8 bytes most of the time.
         while len(byte_chunk := file_obj.read(8)) == 8:
             # Parse the 8 bytes as a float
-            yield struct.unpack('d', byte_chunk)[0]
+            yield struct.unpack("d", byte_chunk)[0]
 
     # Create a generator that yields ints from the raw file_obj bytestream.
     def int_stream():
@@ -79,7 +78,7 @@ def parse_out_file(file_obj, int_bytes=4, int_type='i'):
 
         while len(byte_chunk := file_obj.read(int_bytes)) == int_bytes:
             # Parse the bytes as an int
-            yield struct.unpack(int_type, byte_chunk)[0] 
+            yield struct.unpack(int_type, byte_chunk)[0]
 
     return parse_stream(int_stream(), float_stream())
 
