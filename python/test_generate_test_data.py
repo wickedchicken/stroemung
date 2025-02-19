@@ -15,6 +15,9 @@ def load_expected_simulation(filename):
     with open(filename, "r") as f:
         data = json.load(f)
 
+    # Postprocess the flags field
+    data["flags"] = [[generate_test_data.Flag(v) for v in x] for x in data["flags"]]
+
     return generate_test_data.SimulationOutput(**data)
 
 

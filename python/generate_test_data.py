@@ -4,7 +4,13 @@ import argparse
 import struct
 
 from dataclasses import dataclass
+from enum import IntFlag, CONFORM
 from typing import List
+
+
+class Flag(IntFlag, boundary=CONFORM):
+    boundary = 0
+    fluid = 16
 
 
 @dataclass
@@ -18,7 +24,7 @@ class SimulationOutput:
     V: List[List[float]]  # Velocity in the y-dimension
     P: List[List[float]]  # Pressure
     T: List[List[float]]  # Temperature
-    flags: List[List[int]]  # Flags
+    flags: List[List[Flag]]  # Flags
 
 
 def get_args():
@@ -45,7 +51,13 @@ def parse_stream(int_stream, float_stream):
     V = parse_array(float_stream, imax, jmax)
     P = parse_array(float_stream, imax, jmax)
     T = parse_array(float_stream, imax, jmax)
-    flags = parse_array(int_stream, imax, jmax)
+
+    # Create a generator that yields flags from the int bytestream.
+    def flag_stream():
+        for value in int_stream:
+            yield Flag(value)
+
+    flags = parse_array(flag_stream(), imax, jmax)
 
     return SimulationOutput(
         imax,
