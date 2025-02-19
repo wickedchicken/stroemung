@@ -1,8 +1,8 @@
 # stroemung
 
 [![Crates.io](https://img.shields.io/crates/v/stroemung.svg)](https://crates.io/crates/stroemung)
-[![Docs.rs](https://docs.rs/stroemung/badge.svg)](https://docs.rs/stroemung)
 [![CI](https://github.com/wickedchicken/stroemung/workflows/CI/badge.svg)](https://github.com/wickedchicken/stroemung/actions)
+[![HireMe](hire_me.svg)](https://wickedchicken.github.io/post/hire-me/)
 
 A Computational Fluid Dynamics (CFD) simulator in Rust
 
