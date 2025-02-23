@@ -8,4 +8,7 @@ pub struct Args {
 
     #[arg(short = 'y', default_value_t = 5)]
     pub y_cells: usize,
+
+    #[arg(long)]
+    pub grid_file: Option<String>,
 }
