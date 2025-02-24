@@ -4,7 +4,7 @@ use crate::types::GridSize;
 use ndarray::Array;
 
 /// Generate an empty simulation grid
-pub fn zeroes(size: GridSize) -> SimulationGrid {
+pub fn empty(size: GridSize) -> SimulationGrid {
     SimulationGrid {
         size,
         pressure: Array::zeros(size),

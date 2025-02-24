@@ -36,7 +36,7 @@ mod tests {
     #[test]
     fn grid_size() {
         let size = [5, 7];
-        let grid = presets::zeroes(size);
+        let grid = presets::empty(size);
         assert_eq!(grid.size[0], 5);
         assert_eq!(grid.size[1], 7);
         assert_eq!(grid.pressure.shape(), size);
@@ -67,7 +67,7 @@ mod tests {
     #[test]
     fn serialize() {
         let size = [2, 3];
-        let grid = presets::zeroes(size);
+        let grid = presets::empty(size);
         insta::assert_json_snapshot!(grid);
     }
 }

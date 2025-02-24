@@ -18,7 +18,7 @@ pub fn run(args: Args) {
             let file = File::open(Path::new(&filename)).unwrap();
             serde_json::from_reader(BufReader::new(file)).unwrap()
         }
-        _ => grid::presets::zeroes([args.x_cells, args.y_cells]),
+        _ => grid::presets::empty([args.x_cells, args.y_cells]),
     };
 
     println!("{}", grid);
