@@ -76,6 +76,49 @@ pub fn duvdx(
     (left_side + (gamma * (inner_left2 - inner_right2))) / (4.0 * delx)
 }
 
+/// Calculates duv/dy (the derivative of u*v over y)
+///
+/// This function uses the same basic algebra rearrangement that the
+/// NaSt2D code does. This makes the function easier to compare against
+/// NaSt2D (and reduces the number of divisions in the calculation).
+///
+/// # Arguments
+///
+/// * `u_view` - A 3x3-element ArrayView2 representing
+///   u[(i-1) to (i+1), (j-1) to (j+1)]. This function only uses
+///   the three values on the row where i is 0 (index 1), but takes a 3x3
+///   ArrayView2 to be easier to combine with other functions.
+/// * `v_view` - A 3x3-element ArrayView2 representing
+///   v[(i-1) to (i+1), (j-1) to (j+1)]. This function only uses
+///   "upper right" values (the four combinarions of i, i+1, j-1, and j), but
+///   takes a 3x3 ArrayView2 to be easier to combine with other functions.
+/// * `dely` - "delta y," the physical height of the cell
+/// * `gamma` - Greek letter gamma, the upwind discretization parameter
+pub fn duvdy(
+    u_view: ArrayView2<Real>,
+    v_view: ArrayView2<Real>,
+    dely: Real,
+    gamma: Real,
+) -> Real {
+    let u_i_j = u_view[(1, 1)]; // u[(i, j)] -> u_i_j
+    let u_i_j_m1 = u_view[(1, 0)]; // u[(i, j-1)] -> "u[i][j minus 1]" -> u_i_j_m1
+    let u_i_j_p1 = u_view[(1, 2)]; // u[(i, j+1)] -> "u[i][j plus 1]" -> u_i_j_p1
+
+    let v_i_j = v_view[(1, 1)]; // v[(i, j)] -> v_i_j
+    let v_i_j_m1 = v_view[(1, 0)]; // v[(i, j-1)] -> "v[i][j minus 1]" -> v_i_j_m1
+    let v_i_p1_j = v_view[(2, 1)]; // v[(i+1, j)] -> "v[i plus 1][j]" -> v_i_p1_j
+    let v_i_p1_j_m1 = v_view[(2, 0)]; // v[(i+1, j-1)] -> "v[i plus 1][j minus 1]" -> v_i_p1_j_m1
+
+    let inner_left1 = (v_i_j + v_i_p1_j) * (u_i_j + u_i_j_p1);
+    let inner_right1 = (v_i_j_m1 + v_i_p1_j_m1) * (u_i_j_m1 + u_i_j);
+    let left_side = inner_left1 - inner_right1;
+
+    let inner_left2 = (v_i_j + v_i_p1_j).abs() * (u_i_j - u_i_j_p1);
+    let inner_right2 = (v_i_j_m1 + v_i_p1_j_m1).abs() * (u_i_j_m1 - u_i_j);
+
+    (left_side + (gamma * (inner_left2 - inner_right2))) / (4.0 * dely)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -163,6 +206,47 @@ mod tests {
         for (u, v, delx, gamma, expected) in test_cases {
             assert_eq!(
                 duvdx(ArrayView2::from(&u), ArrayView2::from(&v), delx, gamma),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_duvdy() {
+        // These don't have any particular significance, just some random data.
+        let test_cases = [
+            (
+                array![[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]],
+                array![[8., 9., 10.], [11., 12., 13.], [14., 15., 16.]],
+                1.,
+                1.7,
+                17.15,
+            ),
+            (
+                array![[1., 2., 3.], [4., 5., -6.], [-7., 8., 9.]],
+                array![[8., 9., 10.], [11., -12., 13.], [14., 15., -16.]],
+                1.,
+                1.7,
+                -32.35,
+            ),
+            (
+                array![[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]],
+                array![[8., 9., 10.], [11., 12., 13.], [14., 15., 16.]],
+                1.6,
+                1.7,
+                10.718749999999998,
+            ),
+            (
+                array![[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]],
+                array![[8., 9., 10.], [11., 12., 13.], [14., 15., 16.]],
+                1.,
+                1.5,
+                17.25,
+            ),
+        ];
+        for (u, v, dely, gamma, expected) in test_cases {
+            assert_eq!(
+                duvdy(ArrayView2::from(&u), ArrayView2::from(&v), dely, gamma),
                 expected
             );
         }
