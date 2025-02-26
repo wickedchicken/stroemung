@@ -38,7 +38,7 @@ mod tests {
     use ndarray::{array, ArrayView2};
 
     #[test]
-    fn test_du2dx_kernel() {
+    fn test_du2dx() {
         // These don't have any particular significance, just some random data.
         let test_cases = [
             (
