@@ -16,7 +16,7 @@ pub type Real = f64;
 ///   ArrayView2 to be easier to combine with other functions.
 /// * `gamma` - Greek letter gamma, the upwind discretization parameter
 /// * `delx` - "delta x," the physical width of the cell
-pub fn du2dx_kernel(u_view: ArrayView2<Real>, delx: Real, gamma: Real) -> Real {
+pub fn du2dx(u_view: ArrayView2<Real>, delx: Real, gamma: Real) -> Real {
     let u_i_m1 = u_view[(0, 1)]; // u[(i-1, j)]  "u[i minus 1]" -> u_i_m1
     let u_i = u_view[(1, 1)]; // u[(i, j)]  "u[i]" -> "u_i"
     let u_i_p1 = u_view[(2, 1)]; // u[(i+1, j)]  "u[i plus 1]" -> u_i_p1
@@ -79,7 +79,7 @@ mod tests {
             ),
         ];
         for (u, gamma, delx, expected) in test_cases {
-            assert_eq!(du2dx_kernel(ArrayView2::from(&u), gamma, delx), expected);
+            assert_eq!(du2dx(ArrayView2::from(&u), gamma, delx), expected);
         }
     }
 }
