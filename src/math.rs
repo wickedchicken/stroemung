@@ -122,8 +122,8 @@ mod tests {
                 210.,
             ),
         ];
-        for (u, gamma, delx, expected) in test_cases {
-            assert_eq!(du2dx(ArrayView2::from(&u), gamma, delx), expected);
+        for (u, delx, gamma, expected) in test_cases {
+            assert_eq!(du2dx(ArrayView2::from(&u), delx, gamma), expected);
         }
     }
 
@@ -160,9 +160,9 @@ mod tests {
                 41.25,
             ),
         ];
-        for (u, v, gamma, delx, expected) in test_cases {
+        for (u, v, delx, gamma, expected) in test_cases {
             assert_eq!(
-                duvdx(ArrayView2::from(&u), ArrayView2::from(&v), gamma, delx),
+                duvdx(ArrayView2::from(&u), ArrayView2::from(&v), delx, gamma),
                 expected
             );
         }
