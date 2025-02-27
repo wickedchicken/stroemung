@@ -2,7 +2,7 @@ use ndarray::ArrayView2;
 
 pub type Real = f64;
 
-/// Calculates du^2/dx (the derivative of u^2 over x)
+/// Calculate du^2/dx (the derivative of u^2 over x)
 ///
 /// This function uses the same basic algebra rearrangement that the
 /// NaSt2D code does. This makes the function easier to compare against
@@ -32,7 +32,7 @@ pub fn du2dx(u_view: ArrayView2<Real>, delx: Real, gamma: Real) -> Real {
     (left_side + (gamma * (inner_left2 - inner_right2))) / (4.0 * delx)
 }
 
-/// Calculates duv/dx (the derivative of u*v over x)
+/// Calculate duv/dx (the derivative of u*v over x)
 ///
 /// This function uses the same basic algebra rearrangement that the
 /// NaSt2D code does. This makes the function easier to compare against
@@ -76,7 +76,7 @@ pub fn duvdx(
     (left_side + (gamma * (inner_left2 - inner_right2))) / (4.0 * delx)
 }
 
-/// Calculates duv/dy (the derivative of u*v over y)
+/// Calculate duv/dy (the derivative of u*v over y)
 ///
 /// This function uses the same basic algebra rearrangement that the
 /// NaSt2D code does. This makes the function easier to compare against
@@ -119,7 +119,7 @@ pub fn duvdy(
     (left_side + (gamma * (inner_left2 - inner_right2))) / (4.0 * dely)
 }
 
-/// Calculates dv^2/dy (the derivative of v^2 over y)
+/// Calculate dv^2/dy (the derivative of v^2 over y)
 ///
 /// This function uses the same basic algebra rearrangement that the
 /// NaSt2D code does. This makes the function easier to compare against
