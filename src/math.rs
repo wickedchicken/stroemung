@@ -12,7 +12,7 @@ pub type Real = f64;
 ///
 /// * `u_view` - A 3x3-element ArrayView2 representing
 ///   u[(i-1) to (i+1), (j-1) to (j+1)]. This function only uses
-///   the three values on the column where j is 0 (index 1), but takes a 3x3
+///   the three values on the row where j is 0 (index 1), but takes a 3x3
 ///   ArrayView2 to be easier to combine with other functions.
 /// * `delx` - "delta x," the physical width of the cell
 /// * `gamma` - Greek letter gamma, the upwind discretization parameter
@@ -46,7 +46,7 @@ pub fn du2dx(u_view: ArrayView2<Real>, delx: Real, gamma: Real) -> Real {
 ///   takes a 3x3 ArrayView2 to be easier to combine with other functions.
 /// * `v_view` - A 3x3-element ArrayView2 representing
 ///   v[(i-1) to (i+1), (j-1) to (j+1)]. This function only uses
-///   the three values on the column where j is 0 (index 1), but takes a 3x3
+///   the three values on the row where j is 0 (index 1), but takes a 3x3
 ///   ArrayView2 to be easier to combine with other functions.
 /// * `delx` - "delta x," the physical width of the cell
 /// * `gamma` - Greek letter gamma, the upwind discretization parameter
@@ -86,7 +86,7 @@ pub fn duvdx(
 ///
 /// * `u_view` - A 3x3-element ArrayView2 representing
 ///   u[(i-1) to (i+1), (j-1) to (j+1)]. This function only uses
-///   the three values on the row where i is 0 (index 1), but takes a 3x3
+///   the three values on the column where i is 0 (index 1), but takes a 3x3
 ///   ArrayView2 to be easier to combine with other functions.
 /// * `v_view` - A 3x3-element ArrayView2 representing
 ///   v[(i-1) to (i+1), (j-1) to (j+1)]. This function only uses
