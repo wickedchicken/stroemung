@@ -61,7 +61,7 @@ pub fn duvdx(
     let u_i_m1_j = u_view[(0, 1)]; // "u[(i-1, j)]" "u[i minus 1][j]" -> u_i_m1_j
     let u_i_m1_j_p1 = u_view[(0, 2)]; // "u[(i-1, j+1)]" "u[i-1][j+1]" -> u_i_m1_j_p1
 
-    let v_i_j = v_view[(1, 1)]; // "v[(i, j)" -> v_i_j
+    let v_i_j = v_view[(1, 1)]; // "v[(i, j)]" -> v_i_j
     let v_i_p1_j = v_view[(2, 1)]; // "v[(i+1, j)]" -> "v[i plus 1][j]" -> v_i_p1_j
     let v_i_m1_j = v_view[(0, 1)]; // "v[(i-1, j)]" -> "v[i-1][j]" -> v_i_m1_j
 
