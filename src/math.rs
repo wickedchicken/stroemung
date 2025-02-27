@@ -149,6 +149,30 @@ pub fn dv2dy(v_view: ArrayView2<Real>, dely: Real, gamma: Real) -> Real {
     (left_side + (gamma * (inner_left2 - inner_right2))) / (4.0 * dely)
 }
 
+/// Calculate the discrete Laplacian using a five-point stencil
+///
+/// # Arguments
+///
+/// * `view` - A 3x3-element ArrayView2 representing the stencil of the array
+///   to calculate the Laplacian over. This will most likely be u or v, meaning
+///   view would represent u[(i-1) to (i+1), (j-1) to (j+1)] or
+///   v[(i-1) to (i+1), (j-1) to (j+1)] respectively.
+/// * `delx` - "delta x," the physical width of the cell
+/// * `dely` - "delta y," the physical width of the cell
+pub fn laplacian(view: ArrayView2<Real>, delx: Real, dely: Real) -> Real {
+    // Since the view could be of u or v, we use "e" here to denote "element."
+    let e_i_j = view[(1, 1)]; // e[(i, j)] -> e_i_j
+    let e_i_j_m1 = view[(1, 0)]; // e[(i, j-1)] -> "e[i][j minus 1]" -> e_i_j_m1
+    let e_i_j_p1 = view[(1, 2)]; // e[(i, j+1)] -> "e[i][j plus 1]" -> e_i_j_p1
+    let e_i_m1_j = view[(0, 1)]; // e[(i-1, j)] -> "e[i minus 1][j]" -> e_i_m1_j
+    let e_i_p1_j = view[(2, 1)]; // e[(i+1, j)] -> "e[i plus 1][j]" -> e_i_p1_j
+
+    let d2edx2 = (e_i_p1_j - (2. * e_i_j) + e_i_m1_j) / delx.powi(2);
+    let d2edy2 = (e_i_j_p1 - (2. * e_i_j) + e_i_j_m1) / dely.powi(2);
+
+    d2edx2 + d2edy2
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -325,6 +349,44 @@ mod tests {
         ];
         for (v, dely, gamma, expected) in test_cases {
             assert_eq!(dv2dy(ArrayView2::from(&v), dely, gamma), expected);
+        }
+    }
+
+    #[test]
+    fn test_lapacian() {
+        // These don't have any particular significance, just some random data.
+        let test_cases = [
+            (
+                array![[1., 4., 1.], [1., 5., 3.], [2., 1., 1.]],
+                1.,
+                1.,
+                -11.,
+            ),
+            (
+                array![[-1., -1., -1.], [-1., -5., -1.], [-1., -1., -1.]],
+                1.,
+                1.,
+                16.,
+            ),
+            (
+                array![[1., 4., 1.], [1., 5., 3.], [2., 1., 1.]],
+                1.6,
+                1.3,
+                // NaSt2D actually has a slight difference in the least
+                // significant digit. Not sure if that's due to differences in
+                // calculation or imprecision in representing binary numbers in
+                // decimal.
+                -5.503420857988164,
+            ),
+            (
+                array![[1., 4., 1.], [1., 5., 3.], [2., 1., 1.]],
+                1.3,
+                0.7,
+                -15.20347784084048,
+            ),
+        ];
+        for (e, delx, dely, expected) in test_cases {
+            assert_eq!(laplacian(ArrayView2::from(&e), delx, dely), expected);
         }
     }
 }
