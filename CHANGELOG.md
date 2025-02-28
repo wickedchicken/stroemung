@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   serde-parsable format.
 - Basic linear algebra functions (du2dx, duvdx, duvdy, dv2dy, Laplacian) needed
   for higher-level calculations.
+- Functions to calculate F and G, the horizontal and vertical non-pressure parts of the
+  discretized momentum equation.
 
 ## [0.1.0] - 2025-02-04
 
