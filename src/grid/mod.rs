@@ -1,6 +1,8 @@
 pub mod presets;
 
+use std::error::Error;
 use std::fmt;
+use std::io::Read;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -10,12 +12,37 @@ use crate::math::Real;
 use crate::types::{GridArray, GridSize};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct UnfinalizedSimulationGrid {
+    size: GridSize,
+    pressure: GridArray<Real>,
+    u: GridArray<Real>,
+    v: GridArray<Real>,
+    cell_type: GridArray<Cell>,
+}
+
+// A wrapper struct to make sure that we never deserialize without forgetting
+// to do some postprocessing.
+#[derive(Debug, Serialize)]
 pub struct SimulationGrid {
     size: GridSize,
     pressure: GridArray<Real>,
     u: GridArray<Real>,
     v: GridArray<Real>,
     cell_type: GridArray<Cell>,
+}
+
+impl From<UnfinalizedSimulationGrid> for SimulationGrid {
+    fn from(item: UnfinalizedSimulationGrid) -> Self {
+        // Will be nicer once https://github.com/rust-lang/rust/issues/86555
+        // is in stable.
+        SimulationGrid {
+            size: item.size,
+            pressure: item.pressure,
+            u: item.u,
+            v: item.v,
+            cell_type: item.cell_type,
+        }
+    }
 }
 
 impl std::fmt::Display for SimulationGrid {
@@ -26,6 +53,13 @@ impl std::fmt::Display for SimulationGrid {
         writeln!(f, "v:{}", self.v)?;
         writeln!(f, "Cell Type:{}", self.cell_type)?;
         Ok(())
+    }
+}
+
+impl SimulationGrid {
+    pub fn from_reader<R: Read>(reader: R) -> Result<SimulationGrid, Box<dyn Error>> {
+        let unfinalized: UnfinalizedSimulationGrid = serde_json::from_reader(reader)?;
+        Ok(SimulationGrid::from(unfinalized))
     }
 }
 
@@ -60,9 +94,10 @@ mod tests {
     #[test]
     fn deserialize() {
         let test_filename = test_data_directory().join("simple_grid.json");
-        let result: SimulationGrid =
-            serde_json::from_reader(BufReader::new(File::open(test_filename).unwrap()))
-                .unwrap();
+        let result = SimulationGrid::from_reader(BufReader::new(
+            File::open(test_filename).unwrap(),
+        ))
+        .unwrap();
         insta::assert_json_snapshot!(result);
     }
 
