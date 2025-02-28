@@ -32,6 +32,18 @@ impl std::fmt::Display for SimulationGrid {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::path::{Path, PathBuf};
+
+    fn test_data_directory() -> PathBuf {
+        Path::new(file!())
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("test_data")
+    }
 
     #[test]
     fn grid_size() {
@@ -47,17 +59,7 @@ mod tests {
 
     #[test]
     fn deserialize() {
-        use std::fs::File;
-        use std::io::BufReader;
-        use std::path::Path;
-
-        let test_data_directory = Path::new(file!())
-            .parent()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .join("test_data");
-        let test_filename = test_data_directory.join("simple_grid.json");
+        let test_filename = test_data_directory().join("simple_grid.json");
         let result: SimulationGrid =
             serde_json::from_reader(BufReader::new(File::open(test_filename).unwrap()))
                 .unwrap();
