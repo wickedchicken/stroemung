@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-use stroemung::grid::SimulationGrid;
+use stroemung::grid::{SimulationGrid, UnfinalizedSimulationGrid};
 
 fn load_test_file(filename: &str) -> BufReader<File> {
     let test_data_directory = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -14,7 +14,8 @@ fn load_test_file(filename: &str) -> BufReader<File> {
 
 #[test]
 fn deserialize() {
-    let result: SimulationGrid =
+    let unfinalized: UnfinalizedSimulationGrid =
         serde_json::from_reader(load_test_file("small_data.out.json")).unwrap();
+    let result = SimulationGrid::from(unfinalized);
     insta::assert_json_snapshot!(result);
 }
