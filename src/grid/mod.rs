@@ -15,9 +15,9 @@ use crate::math::Real;
 use crate::types::{BoundaryIndex, GridArray, GridIndex, GridSize};
 
 #[derive(Debug, Default)]
-struct BoundaryList {
+pub struct BoundaryList {
     boundaries: BTreeSet<BoundaryIndex>,
-    sorted_boundary_list: Vec<GridIndex>,
+    pub sorted_boundary_list: Vec<GridIndex>,
 }
 
 impl std::fmt::Display for BoundaryList {
@@ -63,13 +63,13 @@ impl From<SimulationGrid> for UnfinalizedSimulationGrid {
 // generate the boundary list.
 #[derive(Debug, Serialize)]
 pub struct SimulationGrid {
-    size: GridSize,
-    pressure: GridArray<Real>,
-    u: GridArray<Real>,
-    v: GridArray<Real>,
-    cell_type: GridArray<Cell>,
+    pub size: GridSize,
+    pub pressure: GridArray<Real>,
+    pub u: GridArray<Real>,
+    pub v: GridArray<Real>,
+    pub cell_type: GridArray<Cell>,
     #[serde(skip)]
-    boundaries: BoundaryList,
+    pub boundaries: BoundaryList,
 }
 
 impl From<UnfinalizedSimulationGrid> for SimulationGrid {
