@@ -43,6 +43,21 @@ pub struct UnfinalizedSimulationGrid {
     cell_type: GridArray<Cell>,
 }
 
+// Useful for test code
+impl From<SimulationGrid> for UnfinalizedSimulationGrid {
+    fn from(item: SimulationGrid) -> Self {
+        // Will be nicer once https://github.com/rust-lang/rust/issues/86555
+        // is in stable.
+        UnfinalizedSimulationGrid {
+            size: item.size,
+            pressure: item.pressure,
+            u: item.u,
+            v: item.v,
+            cell_type: item.cell_type,
+        }
+    }
+}
+
 // This must be the same as UnfinalizedSimulationGrid, except for boundaries.
 // We have two types to make sure we never deserialize without forgetting to
 // generate the boundary list.
