@@ -1,7 +1,77 @@
+use std::error::Error;
+use std::fmt;
+use std::io::Read;
+
 use crate::math::Real;
 use crate::math::{du2dx, duvdx, duvdy, dv2dy, laplacian};
 
+use serde::Deserialize;
+use serde::Serialize;
+
+use crate::grid::{SimulationGrid, UnfinalizedSimulationGrid};
+use crate::types::{CellPhysicalSize, GridSize};
+
 use ndarray::ArrayView2;
+
+#[derive(Debug, Deserialize)]
+pub struct UnfinalizedSimulation {
+    size: GridSize,
+    cell_size: CellPhysicalSize,
+    delt: Real,
+    gamma: Real,
+    reynolds: Real,
+    grid: UnfinalizedSimulationGrid,
+}
+
+// This must be the same as UnfinalizedSimulation, except the type
+// of grid and without the calculated values. We have two types to make sure
+// we never deserialize without forgetting to generate the boundary list.
+#[derive(Debug, Serialize)]
+pub struct Simulation {
+    size: GridSize,
+    cell_size: CellPhysicalSize,
+    delt: Real,
+    gamma: Real,
+    reynolds: Real,
+    grid: SimulationGrid,
+}
+
+impl From<UnfinalizedSimulation> for Simulation {
+    fn from(item: UnfinalizedSimulation) -> Self {
+        // Will be nicer once https://github.com/rust-lang/rust/issues/86555
+        // is in stable.
+        Simulation {
+            size: item.size,
+            cell_size: item.cell_size,
+            delt: item.delt,
+            gamma: item.gamma,
+            reynolds: item.reynolds,
+            grid: item.grid.into(),
+        }
+    }
+}
+
+impl std::fmt::Display for Simulation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(
+            f,
+            "Simulation {}x{} cells, {}x{} physical size",
+            self.size[0], self.size[1], self.cell_size[0], self.cell_size[1]
+        )?;
+        writeln!(f, "Time step delta:{}", self.delt)?;
+        writeln!(f, "Gamma:{}", self.gamma)?;
+        writeln!(f, "Reynolds number:{}", self.reynolds)?;
+        writeln!(f, "{}", self.grid)?;
+        Ok(())
+    }
+}
+
+impl Simulation {
+    pub fn from_reader<R: Read>(reader: R) -> Result<Simulation, Box<dyn Error>> {
+        let unfinalized: UnfinalizedSimulation = serde_json::from_reader(reader)?;
+        Ok(Simulation::from(unfinalized))
+    }
+}
 
 /// Calculate F (the horizontal non-pressure part of the momentum equation)
 ///
@@ -65,6 +135,44 @@ pub fn calculate_g(
 mod tests {
     use super::*;
     use ndarray::{array, ArrayView2};
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::path::{Path, PathBuf};
+
+    use crate::grid::presets;
+
+    fn test_data_directory() -> PathBuf {
+        Path::new(file!()).parent().unwrap().join("test_data")
+    }
+
+    #[test]
+    fn deserialize() {
+        let test_filename = test_data_directory().join("simple_simulation.json");
+        let result =
+            Simulation::from_reader(BufReader::new(File::open(test_filename).unwrap()))
+                .unwrap();
+        insta::assert_json_snapshot!(result);
+    }
+
+    #[test]
+    fn serialize() {
+        let size = [5, 7];
+        let cell_size = [1., 2.];
+        let delt = 1.4;
+        let gamma = 1.7;
+        let reynolds = 100.;
+
+        let simulation = Simulation::from(UnfinalizedSimulation {
+            size,
+            cell_size,
+            delt,
+            gamma,
+            reynolds,
+            grid: presets::empty(size).into(),
+        });
+
+        insta::assert_json_snapshot!(simulation);
+    }
 
     #[test]
     fn test_calculate_f() {
