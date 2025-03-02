@@ -80,8 +80,10 @@ pub struct SimulationGrid {
     pub boundaries: BoundaryList,
 }
 
-impl From<UnfinalizedSimulationGrid> for SimulationGrid {
-    fn from(item: UnfinalizedSimulationGrid) -> Self {
+impl TryFrom<UnfinalizedSimulationGrid> for SimulationGrid {
+    type Error = SimulationGridError;
+
+    fn try_from(item: UnfinalizedSimulationGrid) -> Result<Self, Self::Error> {
         // Will be nicer once https://github.com/rust-lang/rust/issues/86555
         // is in stable.
         let mut grid = SimulationGrid {
@@ -92,8 +94,8 @@ impl From<UnfinalizedSimulationGrid> for SimulationGrid {
             cell_type: item.cell_type,
             boundaries: Default::default(),
         };
-        grid.rebuild_boundary_list();
-        grid
+        grid.rebuild_boundary_list()?;
+        Ok(grid)
     }
 }
 
@@ -109,7 +111,7 @@ impl std::fmt::Display for SimulationGrid {
 }
 
 impl SimulationGrid {
-    fn rebuild_boundary_list(&mut self) {
+    fn rebuild_boundary_list(&mut self) -> Result<(), SimulationGridError> {
         self.boundaries.boundaries.clear();
         // Run a for_each with the value and indices. See
         // https://github.com/rust-ndarray/ndarray/issues/1093 for details.
@@ -127,13 +129,14 @@ impl SimulationGrid {
             .copied()
             .map(|x| (x.0, x.1))
             .collect();
+        Ok(())
     }
 
     pub fn from_reader<R: Read>(
         reader: R,
     ) -> Result<SimulationGrid, SimulationGridError> {
         match serde_json::from_reader::<R, UnfinalizedSimulationGrid>(reader) {
-            Ok(unfinalized) => Ok(SimulationGrid::from(unfinalized)),
+            Ok(unfinalized) => SimulationGrid::try_from(unfinalized),
             Err(x) => Err(SimulationGridError::DeserializationError(x)),
         }
     }
@@ -200,7 +203,7 @@ mod tests {
             unfinalized.cell_type[*idx] = Cell::Boundary(BoundaryCell::NoSlip);
         }
 
-        let grid = SimulationGrid::from(unfinalized);
+        let grid = SimulationGrid::try_from(unfinalized).unwrap();
 
         let calculated_boundaries_as_list: Vec<BoundaryIndex> =
             grid.boundaries.boundaries.iter().copied().collect();
