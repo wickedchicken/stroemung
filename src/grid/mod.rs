@@ -1,18 +1,26 @@
 pub mod presets;
 
 use std::collections::BTreeSet;
-use std::error::Error;
 use std::fmt;
 use std::io::Read;
 
 use serde::Deserialize;
 use serde::Serialize;
 
+use serde_json::Error as SerdeError;
+
 use ndarray::Zip;
+use thiserror::Error;
 
 use crate::cell::Cell;
 use crate::math::Real;
 use crate::types::{BoundaryIndex, GridArray, GridIndex, GridSize};
+
+#[derive(Error, Debug)]
+pub enum SimulationGridError {
+    #[error("An error occurred while deserializing: `{0}`")]
+    DeserializationError(#[from] SerdeError),
+}
 
 #[derive(Debug, Default)]
 pub struct BoundaryList {
@@ -121,9 +129,13 @@ impl SimulationGrid {
             .collect();
     }
 
-    pub fn from_reader<R: Read>(reader: R) -> Result<SimulationGrid, Box<dyn Error>> {
-        let unfinalized: UnfinalizedSimulationGrid = serde_json::from_reader(reader)?;
-        Ok(SimulationGrid::from(unfinalized))
+    pub fn from_reader<R: Read>(
+        reader: R,
+    ) -> Result<SimulationGrid, SimulationGridError> {
+        match serde_json::from_reader::<R, UnfinalizedSimulationGrid>(reader) {
+            Ok(unfinalized) => Ok(SimulationGrid::from(unfinalized)),
+            Err(x) => Err(SimulationGridError::DeserializationError(x)),
+        }
     }
 }
 
