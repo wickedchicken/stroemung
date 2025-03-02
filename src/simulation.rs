@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt;
 use std::io::Read;
 
@@ -8,10 +7,20 @@ use crate::math::{du2dx, duvdx, duvdy, dv2dy, laplacian};
 use serde::Deserialize;
 use serde::Serialize;
 
+use serde_json::Error as SerdeError;
+
+use thiserror::Error;
+
 use crate::grid::{SimulationGrid, UnfinalizedSimulationGrid};
 use crate::types::{CellPhysicalSize, GridSize};
 
 use ndarray::ArrayView2;
+
+#[derive(Error, Debug)]
+pub enum SimulationError {
+    #[error("An error occurred while deserializing: `{0}`")]
+    DeserializationError(#[from] SerdeError),
+}
 
 #[derive(Debug, Deserialize)]
 pub struct UnfinalizedSimulation {
@@ -67,7 +76,7 @@ impl std::fmt::Display for Simulation {
 }
 
 impl Simulation {
-    pub fn from_reader<R: Read>(reader: R) -> Result<Simulation, Box<dyn Error>> {
+    pub fn from_reader<R: Read>(reader: R) -> Result<Simulation, SimulationError> {
         let unfinalized: UnfinalizedSimulation = serde_json::from_reader(reader)?;
         Ok(Simulation::from(unfinalized))
     }
