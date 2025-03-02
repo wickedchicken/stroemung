@@ -112,7 +112,6 @@ impl SimulationGrid {
                     .insert(BoundaryIndex(idx.0, idx.1));
             }
         });
-        dbg!(&self.boundaries.boundaries);
         self.boundaries.sorted_boundary_list = self
             .boundaries
             .boundaries
