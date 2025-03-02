@@ -16,6 +16,6 @@ fn load_test_file(filename: &str) -> BufReader<File> {
 fn deserialize() {
     let unfinalized: UnfinalizedSimulationGrid =
         serde_json::from_reader(load_test_file("small_data.out.json")).unwrap();
-    let result = SimulationGrid::from(unfinalized);
+    let result = SimulationGrid::try_from(unfinalized).unwrap();
     insta::assert_json_snapshot!(result);
 }

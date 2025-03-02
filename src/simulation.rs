@@ -11,7 +11,7 @@ use serde_json::Error as SerdeError;
 
 use thiserror::Error;
 
-use crate::grid::{SimulationGrid, UnfinalizedSimulationGrid};
+use crate::grid::{SimulationGrid, SimulationGridError, UnfinalizedSimulationGrid};
 use crate::types::{CellPhysicalSize, GridSize};
 
 use ndarray::ArrayView2;
@@ -20,6 +20,8 @@ use ndarray::ArrayView2;
 pub enum SimulationError {
     #[error("An error occurred while deserializing: `{0}`")]
     DeserializationError(#[from] SerdeError),
+    #[error("An error occurred with the SimulationGrid: `{0}`")]
+    GridError(#[from] SimulationGridError),
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,18 +47,20 @@ pub struct Simulation {
     grid: SimulationGrid,
 }
 
-impl From<UnfinalizedSimulation> for Simulation {
-    fn from(item: UnfinalizedSimulation) -> Self {
+impl TryFrom<UnfinalizedSimulation> for Simulation {
+    type Error = SimulationError;
+
+    fn try_from(item: UnfinalizedSimulation) -> Result<Self, Self::Error> {
         // Will be nicer once https://github.com/rust-lang/rust/issues/86555
         // is in stable.
-        Simulation {
+        Ok(Simulation {
             size: item.size,
             cell_size: item.cell_size,
             delt: item.delt,
             gamma: item.gamma,
             reynolds: item.reynolds,
-            grid: item.grid.into(),
-        }
+            grid: item.grid.try_into()?,
+        })
     }
 }
 
@@ -78,7 +82,7 @@ impl std::fmt::Display for Simulation {
 impl Simulation {
     pub fn from_reader<R: Read>(reader: R) -> Result<Simulation, SimulationError> {
         let unfinalized: UnfinalizedSimulation = serde_json::from_reader(reader)?;
-        Ok(Simulation::from(unfinalized))
+        Simulation::try_from(unfinalized)
     }
 }
 
@@ -171,14 +175,15 @@ mod tests {
         let gamma = 1.7;
         let reynolds = 100.;
 
-        let simulation = Simulation::from(UnfinalizedSimulation {
+        let simulation = Simulation::try_from(UnfinalizedSimulation {
             size,
             cell_size,
             delt,
             gamma,
             reynolds,
             grid: presets::empty(size).into(),
-        });
+        })
+        .unwrap();
 
         insta::assert_json_snapshot!(simulation);
     }
