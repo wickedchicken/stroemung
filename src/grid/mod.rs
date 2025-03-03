@@ -16,7 +16,37 @@ use crate::cell::Cell;
 use crate::math::Real;
 use crate::types::{BoundaryIndex, GridArray, GridIndex, GridSize};
 
-type Neighbors = [Option<GridIndex>; 4];
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EdgeType {
+    North {
+        north_neighbor: GridIndex,
+    },
+    NorthEast {
+        north_neighbor: GridIndex,
+        east_neighbor: GridIndex,
+    },
+    East {
+        east_neighbor: GridIndex,
+    },
+    SouthEast {
+        south_neighbor: GridIndex,
+        east_neighbor: GridIndex,
+    },
+    South {
+        south_neighbor: GridIndex,
+    },
+    SouthWest {
+        south_neighbor: GridIndex,
+        west_neighbor: GridIndex,
+    },
+    West {
+        west_neighbor: GridIndex,
+    },
+    NorthWest {
+        north_neighbor: GridIndex,
+        west_neighbor: GridIndex,
+    },
+}
 
 #[derive(Error, Debug)]
 pub enum SimulationGridError {
@@ -31,7 +61,7 @@ pub enum SimulationGridError {
 #[derive(Debug, Default)]
 pub struct BoundaryList {
     boundaries: BTreeSet<BoundaryIndex>,
-    pub sorted_boundary_list: Vec<(GridIndex, Neighbors)>,
+    pub sorted_boundary_list: Vec<(GridIndex, Option<EdgeType>)>,
 }
 
 impl std::fmt::Display for BoundaryList {
@@ -128,26 +158,32 @@ impl SimulationGrid {
                     .insert(BoundaryIndex(idx.0, idx.1));
             }
         });
-        self.boundaries.sorted_boundary_list = self
+
+        let get_neighbors = |idx: BoundaryIndex| {
+            let new_idx: GridIndex = (idx.0, idx.1);
+            let edge_type = self.calculate_edges(new_idx)?;
+            Ok::<((usize, usize), std::option::Option<EdgeType>), SimulationGridError>((
+                new_idx, edge_type,
+            ))
+        };
+        let result: Result<Vec<_>, _> = self
             .boundaries
             .boundaries
             .iter()
             .copied()
-            .map(|x| ((x.0, x.1), self.fluid_neighbors((x.0, x.1))))
+            .map(get_neighbors)
             .collect();
-
-        for (idx, [left, right, up, down]) in &self.boundaries.sorted_boundary_list {
-            if (left.is_some() && right.is_some()) || (up.is_some() && down.is_some()) {
-                return Err(SimulationGridError::BoundaryTooThinError(
-                    self.cell_type[*idx].to_string(),
-                    format!("{:?}", *idx),
-                ));
-            }
-        }
+        self.boundaries.sorted_boundary_list = result?;
         Ok(())
     }
 
-    fn fluid_neighbors(&self, cell_idx: GridIndex) -> Neighbors {
+    fn calculate_edges(
+        &self,
+        cell_idx: GridIndex,
+    ) -> Result<Option<EdgeType>, SimulationGridError> {
+        // Note that we use the convention that 0,0 is the upper-left corner
+        // instead of the bottom left as in the book. This means that "up" here
+        // is "down" in the book.
         let left: Option<GridIndex> = if cell_idx.0 > 0 {
             let test_index = (cell_idx.0 - 1, cell_idx.1);
             match self.cell_type[test_index] {
@@ -188,7 +224,41 @@ impl SimulationGrid {
             None
         };
 
-        [left, right, up, down]
+        match (left, right, up, down) {
+            (None, None, None, None) => Ok(None),
+            (Some(left), None, None, None) => Ok(Some(EdgeType::West {
+                west_neighbor: left,
+            })),
+            (Some(left), None, Some(up), None) => Ok(Some(EdgeType::NorthWest {
+                north_neighbor: up,
+                west_neighbor: left,
+            })),
+            (None, None, Some(up), None) => {
+                Ok(Some(EdgeType::North { north_neighbor: up }))
+            }
+            (None, Some(right), Some(up), None) => Ok(Some(EdgeType::NorthEast {
+                north_neighbor: up,
+                east_neighbor: right,
+            })),
+            (None, Some(right), None, None) => Ok(Some(EdgeType::East {
+                east_neighbor: right,
+            })),
+            (None, Some(right), None, Some(down)) => Ok(Some(EdgeType::SouthEast {
+                south_neighbor: down,
+                east_neighbor: right,
+            })),
+            (None, None, None, Some(down)) => Ok(Some(EdgeType::South {
+                south_neighbor: down,
+            })),
+            (Some(left), None, None, Some(down)) => Ok(Some(EdgeType::SouthWest {
+                south_neighbor: down,
+                west_neighbor: left,
+            })),
+            _ => Err(SimulationGridError::BoundaryTooThinError(
+                self.cell_type[cell_idx].to_string(),
+                format!("{:?}", cell_idx),
+            )),
+        }
     }
 
     pub fn from_reader<R: Read>(
@@ -258,58 +328,96 @@ mod tests {
     fn rebuild_boundary_list() {
         use crate::cell::{BoundaryCell, Cell};
         let size = [3, 3];
-        let mut unfinalized = UnfinalizedSimulationGrid {
-            size,
-            pressure: Array::zeros(size),
-            u: Array::zeros(size),
-            v: Array::zeros(size),
-            cell_type: Array::from_elem(size, Cell::Fluid),
-        };
 
-        // Everything except for the middle cell
-        let expected_boundaries: Vec<GridIndex> = vec![
-            (0, 0),
-            (0, 1),
-            (0, 2),
-            (1, 0),
-            (1, 2),
-            (2, 0),
-            (2, 1),
-            (2, 2),
+        let examples = vec![
+            (
+                // Everything except for the middle cell is a boundary
+                vec![
+                    (0, 0),
+                    (0, 1),
+                    (0, 2),
+                    (1, 0),
+                    (1, 2),
+                    (2, 0),
+                    (2, 1),
+                    (2, 2),
+                ],
+                vec![
+                    None,
+                    Some(EdgeType::East {
+                        east_neighbor: (1, 1),
+                    }),
+                    None,
+                    Some(EdgeType::South {
+                        south_neighbor: (1, 1),
+                    }),
+                    Some(EdgeType::North {
+                        north_neighbor: (1, 1),
+                    }),
+                    None,
+                    Some(EdgeType::West {
+                        west_neighbor: (1, 1),
+                    }),
+                    None,
+                ],
+            ),
+            (
+                // All corners are boundaries
+                vec![(0, 0), (0, 2), (2, 0), (2, 2)],
+                vec![
+                    Some(EdgeType::SouthEast {
+                        south_neighbor: (0, 1),
+                        east_neighbor: (1, 0),
+                    }),
+                    Some(EdgeType::NorthEast {
+                        north_neighbor: (0, 1),
+                        east_neighbor: (1, 2),
+                    }),
+                    Some(EdgeType::SouthWest {
+                        south_neighbor: (2, 1),
+                        west_neighbor: (1, 0),
+                    }),
+                    Some(EdgeType::NorthWest {
+                        north_neighbor: (2, 1),
+                        west_neighbor: (1, 2),
+                    }),
+                ],
+            ),
         ];
-        let expected_boundary_indices: Vec<BoundaryIndex> = expected_boundaries
-            .iter()
-            .map(|x| BoundaryIndex(x.0, x.1))
-            .collect();
 
-        let expected_neighbors: Vec<Neighbors> = vec![
-            [None, None, None, None],
-            [None, Some((1, 1)), None, None],
-            [None, None, None, None],
-            [None, None, None, Some((1, 1))],
-            [None, None, Some((1, 1)), None],
-            [None, None, None, None],
-            [Some((1, 1)), None, None, None],
-            [None, None, None, None],
-        ];
+        for (expected_boundaries, expected_neighbors) in examples {
+            let mut unfinalized = UnfinalizedSimulationGrid {
+                size,
+                pressure: Array::zeros(size),
+                u: Array::zeros(size),
+                v: Array::zeros(size),
+                cell_type: Array::from_elem(size, Cell::Fluid),
+            };
 
-        let expected_sorted_list: Vec<(GridIndex, Neighbors)> = expected_boundaries
-            .iter()
-            .zip(expected_neighbors)
-            .map(|(x, y)| (*x, y))
-            .collect();
+            let expected_boundary_indices: Vec<BoundaryIndex> = expected_boundaries
+                .iter()
+                .map(|x| BoundaryIndex(x.0, x.1))
+                .collect();
 
-        for idx in &expected_boundaries {
-            unfinalized.cell_type[*idx] = Cell::Boundary(BoundaryCell::NoSlip);
+            let expected_sorted_list: Vec<(GridIndex, Option<EdgeType>)> =
+                expected_boundaries
+                    .iter()
+                    .zip(expected_neighbors)
+                    .map(|(x, y)| (*x, y))
+                    .collect();
+
+            for idx in &expected_boundaries {
+                unfinalized.cell_type[*idx] = Cell::Boundary(BoundaryCell::NoSlip);
+            }
+
+            let grid = SimulationGrid::try_from(unfinalized).unwrap();
+
+            let calculated_boundaries_as_list: Vec<BoundaryIndex> =
+                grid.boundaries.boundaries.iter().copied().collect();
+
+            assert_eq!(calculated_boundaries_as_list, expected_boundary_indices);
+            assert_eq!(grid.boundaries.sorted_boundary_list, expected_sorted_list);
         }
-
-        let grid = SimulationGrid::try_from(unfinalized).unwrap();
-
-        let calculated_boundaries_as_list: Vec<BoundaryIndex> =
-            grid.boundaries.boundaries.iter().copied().collect();
-
-        assert_eq!(calculated_boundaries_as_list, expected_boundary_indices);
-        assert_eq!(grid.boundaries.sorted_boundary_list, expected_sorted_list);
     }
 
     #[test]
