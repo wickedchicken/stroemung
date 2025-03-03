@@ -16,16 +16,22 @@ use crate::cell::Cell;
 use crate::math::Real;
 use crate::types::{BoundaryIndex, GridArray, GridIndex, GridSize};
 
+type Neighbors = [Option<GridIndex>; 4];
+
 #[derive(Error, Debug)]
 pub enum SimulationGridError {
     #[error("An error occurred while deserializing: `{0}`")]
     DeserializationError(#[from] SerdeError),
+    #[error("A cell `{0}` at `{1}` was not a BoundaryCell as expected.")]
+    BoundaryListIncorrectError(String, String),
+    #[error("A cell `{0}` at `{1}` has fluid on opposing sides.")]
+    BoundaryTooThinError(String, String),
 }
 
 #[derive(Debug, Default)]
 pub struct BoundaryList {
     boundaries: BTreeSet<BoundaryIndex>,
-    pub sorted_boundary_list: Vec<GridIndex>,
+    pub sorted_boundary_list: Vec<(GridIndex, Neighbors)>,
 }
 
 impl std::fmt::Display for BoundaryList {
@@ -127,9 +133,62 @@ impl SimulationGrid {
             .boundaries
             .iter()
             .copied()
-            .map(|x| (x.0, x.1))
+            .map(|x| ((x.0, x.1), self.fluid_neighbors((x.0, x.1))))
             .collect();
+
+        for (idx, [left, right, up, down]) in &self.boundaries.sorted_boundary_list {
+            if (left.is_some() && right.is_some()) || (up.is_some() && down.is_some()) {
+                return Err(SimulationGridError::BoundaryTooThinError(
+                    self.cell_type[*idx].to_string(),
+                    format!("{:?}", *idx),
+                ));
+            }
+        }
         Ok(())
+    }
+
+    fn fluid_neighbors(&self, cell_idx: GridIndex) -> Neighbors {
+        let left: Option<GridIndex> = if cell_idx.0 > 0 {
+            let test_index = (cell_idx.0 - 1, cell_idx.1);
+            match self.cell_type[test_index] {
+                Cell::Fluid => Some(test_index),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        let right: Option<GridIndex> = if cell_idx.0 < (self.size[0] - 1) {
+            let test_index = (cell_idx.0 + 1, cell_idx.1);
+            match self.cell_type[test_index] {
+                Cell::Fluid => Some(test_index),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        let up: Option<GridIndex> = if cell_idx.1 > 0 {
+            let test_index = (cell_idx.0, cell_idx.1 - 1);
+            match self.cell_type[test_index] {
+                Cell::Fluid => Some(test_index),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        let down: Option<GridIndex> = if cell_idx.1 < (self.size[1] - 1) {
+            let test_index = (cell_idx.0, cell_idx.1 + 1);
+            match self.cell_type[test_index] {
+                Cell::Fluid => Some(test_index),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        [left, right, up, down]
     }
 
     pub fn from_reader<R: Read>(
@@ -172,6 +231,30 @@ mod tests {
     }
 
     #[test]
+    fn thin_boundary() {
+        use crate::cell::{BoundaryCell, Cell};
+        let size = [3, 3];
+
+        let boundaries: Vec<Vec<GridIndex>> =
+            vec![vec![(1, 0), (1, 1), (1, 2)], vec![(0, 1), (1, 1), (2, 1)]];
+        for example in &boundaries {
+            let mut unfinalized = UnfinalizedSimulationGrid {
+                size,
+                pressure: Array::zeros(size),
+                u: Array::zeros(size),
+                v: Array::zeros(size),
+                cell_type: Array::from_elem(size, Cell::Fluid),
+            };
+            for idx in example {
+                unfinalized.cell_type[*idx] = Cell::Boundary(BoundaryCell::NoSlip);
+            }
+            let grid = SimulationGrid::try_from(unfinalized);
+            assert!(grid.is_err());
+            assert!(format!("{:?}", grid).contains("BoundaryTooThinError"));
+        }
+    }
+
+    #[test]
     fn rebuild_boundary_list() {
         use crate::cell::{BoundaryCell, Cell};
         let size = [3, 3];
@@ -199,6 +282,23 @@ mod tests {
             .map(|x| BoundaryIndex(x.0, x.1))
             .collect();
 
+        let expected_neighbors: Vec<Neighbors> = vec![
+            [None, None, None, None],
+            [None, Some((1, 1)), None, None],
+            [None, None, None, None],
+            [None, None, None, Some((1, 1))],
+            [None, None, Some((1, 1)), None],
+            [None, None, None, None],
+            [Some((1, 1)), None, None, None],
+            [None, None, None, None],
+        ];
+
+        let expected_sorted_list: Vec<(GridIndex, Neighbors)> = expected_boundaries
+            .iter()
+            .zip(expected_neighbors)
+            .map(|(x, y)| (*x, y))
+            .collect();
+
         for idx in &expected_boundaries {
             unfinalized.cell_type[*idx] = Cell::Boundary(BoundaryCell::NoSlip);
         }
@@ -209,7 +309,7 @@ mod tests {
             grid.boundaries.boundaries.iter().copied().collect();
 
         assert_eq!(calculated_boundaries_as_list, expected_boundary_indices);
-        assert_eq!(grid.boundaries.sorted_boundary_list, expected_boundaries);
+        assert_eq!(grid.boundaries.sorted_boundary_list, expected_sorted_list);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 ---
 source: src/grid/mod.rs
-expression: result.0.boundaries
+expression: result.boundaries
 ---
 Boundaries:
   BoundaryIndex(0, 0)
@@ -14,13 +14,13 @@ Boundaries:
   BoundaryIndex(3, 1)
   BoundaryIndex(3, 2)
 Sorted Boundary List:
-  (0, 0)
-  (0, 1)
-  (0, 2)
-  (1, 0)
-  (1, 2)
-  (2, 0)
-  (2, 2)
-  (3, 0)
-  (3, 1)
-  (3, 2)
+  ((0, 0), [None, None, None, None])
+  ((0, 1), [None, Some((1, 1)), None, None])
+  ((0, 2), [None, None, None, None])
+  ((1, 0), [None, None, None, Some((1, 1))])
+  ((1, 2), [None, None, Some((1, 1)), None])
+  ((2, 0), [None, None, None, Some((2, 1))])
+  ((2, 2), [None, None, Some((2, 1)), None])
+  ((3, 0), [None, None, None, None])
+  ((3, 1), [Some((2, 1)), None, None, None])
+  ((3, 2), [None, None, None, None])
