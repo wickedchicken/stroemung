@@ -12,7 +12,7 @@ use serde_json::Error as SerdeError;
 use ndarray::Zip;
 use thiserror::Error;
 
-use crate::cell::Cell;
+use crate::cell::{BoundaryCell, Cell};
 use crate::math::Real;
 use crate::types::{BoundaryIndex, GridArray, GridIndex, GridSize};
 
@@ -62,6 +62,9 @@ pub enum SimulationGridError {
 pub struct BoundaryList {
     boundaries: BTreeSet<BoundaryIndex>,
     pub sorted_boundary_list: Vec<(GridIndex, Option<EdgeType>)>,
+    // This is scratch space so the vector doesn't keep getting reallocated
+    // between simulation steps
+    pub u_v_restore: Vec<(GridIndex, Option<Real>, Option<Real>)>,
 }
 
 impl std::fmt::Display for BoundaryList {
@@ -131,6 +134,7 @@ impl TryFrom<UnfinalizedSimulationGrid> for SimulationGrid {
             boundaries: BoundaryList {
                 boundaries: Default::default(),
                 sorted_boundary_list: Default::default(),
+                u_v_restore: Vec::new(),
             },
         };
         grid.rebuild_boundary_list()?;
@@ -187,6 +191,7 @@ impl SimulationGrid {
 
     fn rebuild_boundary_list(&mut self) -> Result<(), SimulationGridError> {
         self.boundaries.boundaries.clear();
+        self.boundaries.u_v_restore = Vec::new();
         // Run a for_each with the value and indices. See
         // https://github.com/rust-ndarray/ndarray/issues/1093 for details.
         Zip::indexed(self.cell_type.view()).for_each(|idx, val| {
@@ -286,6 +291,244 @@ impl SimulationGrid {
             Ok(unfinalized) => SimulationGrid::try_from(unfinalized),
             Err(x) => Err(SimulationGridError::DeserializationError(x)),
         }
+    }
+    pub fn set_boundary_u_and_v(&mut self) -> Result<(), SimulationGridError> {
+        // We're going to copy u and v back into the vector in the loop
+        self.boundaries.u_v_restore.clear();
+
+        for (boundary_idx, maybe_edge) in &self.boundaries.sorted_boundary_list {
+            // Don't do anything if we're not on a boundary.
+            let Some(edge) = maybe_edge else {
+                // We still want to restore its u and v though.
+                self.boundaries.u_v_restore.push((
+                    *boundary_idx,
+                    Some(self.u[*boundary_idx]),
+                    Some(self.v[*boundary_idx]),
+                ));
+                continue;
+            };
+            // There are n+1 edges for n cells in a row. To prevent
+            // off-by-one errors in updating the edges of the boundary,
+            // we designate the "north" and "west" edges the starting
+            // points. This means that *corners* with a north or west
+            // edge are responsible for updating an extra v or u edge
+            // respectively. A NorthWest cell must update both extra
+            // u and v edges.
+            match self.cell_type[*boundary_idx] {
+                Cell::Boundary(BoundaryCell::NoSlip) => {
+                    let boundary_u = 0.0;
+                    let boundary_v = 0.0;
+
+                    match edge {
+                        EdgeType::North { north_neighbor } => {
+                            self.u[*boundary_idx] = -self.u[*north_neighbor];
+                            self.v[*north_neighbor] = boundary_v;
+                        }
+                        EdgeType::NorthEast {
+                            north_neighbor,
+                            east_neighbor,
+                        } => {
+                            self.u[*boundary_idx] = boundary_u;
+                            self.v[*north_neighbor] = boundary_v;
+                            self.v[*boundary_idx] = -self.v[*east_neighbor];
+                        }
+                        EdgeType::East { east_neighbor } => {
+                            self.u[*boundary_idx] = boundary_u;
+                            self.v[*boundary_idx] = -self.v[*east_neighbor];
+                        }
+                        EdgeType::SouthEast { .. } => {
+                            self.u[*boundary_idx] = boundary_u;
+                            self.v[*boundary_idx] = boundary_v;
+                        }
+                        EdgeType::South { south_neighbor } => {
+                            self.u[*boundary_idx] = -self.u[*south_neighbor];
+                            self.v[*boundary_idx] = boundary_v;
+                        }
+                        EdgeType::SouthWest {
+                            south_neighbor,
+                            west_neighbor,
+                        } => {
+                            self.u[*west_neighbor] = boundary_u;
+                            self.u[*boundary_idx] = -self.u[*south_neighbor];
+                            self.v[*boundary_idx] = boundary_v;
+                        }
+                        EdgeType::West { west_neighbor } => {
+                            self.u[*west_neighbor] = boundary_u;
+                            self.v[*boundary_idx] = -self.v[*west_neighbor];
+                        }
+                        EdgeType::NorthWest {
+                            north_neighbor,
+                            west_neighbor,
+                        } => {
+                            self.u[*west_neighbor] = boundary_u;
+                            self.u[*boundary_idx] = -self.u[*north_neighbor];
+                            self.v[*north_neighbor] = boundary_v;
+                            self.v[*boundary_idx] = -self.v[*west_neighbor];
+                        }
+                    };
+                }
+                Cell::Boundary(BoundaryCell::Outflow) => {
+                    match edge {
+                        EdgeType::North { north_neighbor } => {
+                            self.u[*boundary_idx] = self.u[*north_neighbor];
+                            self.v[*boundary_idx] = self.v[*north_neighbor];
+                        }
+                        EdgeType::NorthEast {
+                            north_neighbor,
+                            east_neighbor,
+                        } => {
+                            self.u[*boundary_idx] = self.u[*north_neighbor];
+                            self.v[*boundary_idx] = self.v[*east_neighbor];
+                        }
+                        EdgeType::East { east_neighbor } => {
+                            self.u[*boundary_idx] = self.u[*east_neighbor];
+                            self.v[*boundary_idx] = self.v[*east_neighbor];
+                        }
+                        EdgeType::SouthEast {
+                            south_neighbor,
+                            east_neighbor,
+                        } => {
+                            self.u[*boundary_idx] = self.u[*east_neighbor];
+                            self.v[*boundary_idx] = self.v[*south_neighbor];
+                        }
+                        EdgeType::South { south_neighbor } => {
+                            self.u[*boundary_idx] = self.u[*south_neighbor];
+                            self.v[*boundary_idx] = self.v[*south_neighbor];
+                        }
+                        EdgeType::SouthWest {
+                            south_neighbor,
+                            west_neighbor,
+                        } => {
+                            self.u[*boundary_idx] = self.u[*west_neighbor];
+                            self.v[*boundary_idx] = self.v[*south_neighbor];
+                        }
+                        EdgeType::West { west_neighbor } => {
+                            self.u[*boundary_idx] = self.u[*west_neighbor];
+                            self.v[*boundary_idx] = self.v[*west_neighbor];
+                        }
+                        EdgeType::NorthWest {
+                            north_neighbor,
+                            west_neighbor,
+                        } => {
+                            self.u[*boundary_idx] = self.u[*north_neighbor];
+                            self.v[*boundary_idx] = self.v[*west_neighbor];
+                        }
+                    };
+                }
+                Cell::Boundary(BoundaryCell::Inflow { velocity }) => {
+                    let [boundary_u, boundary_v] = velocity;
+                    match edge {
+                        EdgeType::North { north_neighbor } => {
+                            self.u[*boundary_idx] = -self.u[*north_neighbor];
+                            self.v[*north_neighbor] = boundary_v;
+                        }
+                        EdgeType::NorthEast {
+                            north_neighbor,
+                            east_neighbor,
+                        } => {
+                            self.u[*boundary_idx] = boundary_u;
+                            self.v[*north_neighbor] = boundary_v;
+                            self.v[*boundary_idx] = -self.v[*east_neighbor];
+                        }
+                        EdgeType::East { east_neighbor } => {
+                            self.u[*boundary_idx] = boundary_u;
+                            self.v[*boundary_idx] = -self.v[*east_neighbor];
+                        }
+                        EdgeType::SouthEast { .. } => {
+                            self.u[*boundary_idx] = boundary_u;
+                            self.v[*boundary_idx] = boundary_v;
+                        }
+                        EdgeType::South { south_neighbor } => {
+                            self.u[*boundary_idx] = -self.u[*south_neighbor];
+                            self.v[*boundary_idx] = boundary_v;
+                        }
+                        EdgeType::SouthWest {
+                            south_neighbor,
+                            west_neighbor,
+                        } => {
+                            self.u[*west_neighbor] = boundary_u;
+                            self.u[*boundary_idx] = -self.u[*south_neighbor];
+                            self.v[*boundary_idx] = boundary_v;
+                        }
+                        EdgeType::West { west_neighbor } => {
+                            self.u[*west_neighbor] = boundary_u;
+                            self.v[*boundary_idx] = -self.v[*west_neighbor];
+                        }
+                        EdgeType::NorthWest {
+                            north_neighbor,
+                            west_neighbor,
+                        } => {
+                            self.u[*west_neighbor] = boundary_u;
+                            self.u[*boundary_idx] = -self.u[*north_neighbor];
+                            self.v[*north_neighbor] = boundary_v;
+                            self.v[*boundary_idx] = -self.v[*west_neighbor];
+                        }
+                    };
+                }
+                other => {
+                    return Err(SimulationGridError::BoundaryListIncorrectError(
+                        other.to_string(),
+                        format!("{:?}", *boundary_idx),
+                    ))
+                }
+            }
+
+            self.boundaries.u_v_restore.push((
+                *boundary_idx,
+                Some(self.u[*boundary_idx]),
+                Some(self.v[*boundary_idx]),
+            ));
+
+            // Stash u and v values for later restoration
+            match edge {
+                EdgeType::North { north_neighbor } => {
+                    self.boundaries.u_v_restore.push((
+                        *boundary_idx,
+                        None,
+                        Some(self.v[*north_neighbor]),
+                    ));
+                }
+                EdgeType::NorthEast {
+                    north_neighbor,
+                    east_neighbor: _,
+                } => {
+                    self.boundaries.u_v_restore.push((
+                        *boundary_idx,
+                        None,
+                        Some(self.v[*north_neighbor]),
+                    ));
+                }
+                EdgeType::SouthWest {
+                    south_neighbor: _,
+                    west_neighbor,
+                } => {
+                    self.boundaries.u_v_restore.push((
+                        *boundary_idx,
+                        Some(self.u[*west_neighbor]),
+                        None,
+                    ));
+                }
+                EdgeType::West { west_neighbor } => {
+                    self.boundaries.u_v_restore.push((
+                        *boundary_idx,
+                        Some(self.u[*west_neighbor]),
+                        None,
+                    ));
+                }
+                EdgeType::NorthWest {
+                    north_neighbor,
+                    west_neighbor,
+                } => {
+                    self.boundaries.u_v_restore.push((
+                        *boundary_idx,
+                        Some(self.u[*west_neighbor]),
+                        Some(self.v[*north_neighbor]),
+                    ));
+                }
+                _ => {}
+            };
+        }
+        Ok(())
     }
 }
 
