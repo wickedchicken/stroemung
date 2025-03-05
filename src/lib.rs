@@ -4,6 +4,7 @@ pub mod grid;
 pub mod math;
 pub mod simulation;
 pub mod types;
+pub mod visualization;
 
 use std::fs::File;
 use std::io::BufReader;
