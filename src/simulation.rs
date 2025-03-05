@@ -26,12 +26,12 @@ pub enum SimulationError {
 
 #[derive(Debug, Deserialize)]
 pub struct UnfinalizedSimulation {
-    size: GridSize,
-    cell_size: CellPhysicalSize,
-    delt: Real,
-    gamma: Real,
-    reynolds: Real,
-    grid: UnfinalizedSimulationGrid,
+    pub size: GridSize,
+    pub cell_size: CellPhysicalSize,
+    pub delt: Real,
+    pub gamma: Real,
+    pub reynolds: Real,
+    pub grid: UnfinalizedSimulationGrid,
 }
 
 // This must be the same as UnfinalizedSimulation, except the type
@@ -39,12 +39,12 @@ pub struct UnfinalizedSimulation {
 // we never deserialize without forgetting to generate the boundary list.
 #[derive(Debug, Serialize)]
 pub struct Simulation {
-    size: GridSize,
-    cell_size: CellPhysicalSize,
-    delt: Real,
-    gamma: Real,
-    reynolds: Real,
-    grid: SimulationGrid,
+    pub size: GridSize,
+    pub cell_size: CellPhysicalSize,
+    pub delt: Real,
+    pub gamma: Real,
+    pub reynolds: Real,
+    pub grid: SimulationGrid,
 }
 
 impl TryFrom<UnfinalizedSimulation> for Simulation {
