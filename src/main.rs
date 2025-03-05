@@ -1,6 +1,8 @@
 use clap::Parser;
+use stroemung::window_conf;
 
-fn main() {
+#[macroquad::main(window_conf)]
+async fn main() {
     let args = stroemung::args::Args::parse();
-    stroemung::run(args);
+    stroemung::run(args).await;
 }
