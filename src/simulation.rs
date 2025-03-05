@@ -405,11 +405,16 @@ mod tests {
 
     #[test]
     fn deserialize() {
-        let test_filename = test_data_directory().join("simple_simulation.json");
-        let result =
-            Simulation::from_reader(BufReader::new(File::open(test_filename).unwrap()))
-                .unwrap();
-        insta::assert_json_snapshot!(result);
+        for test_filename in [
+            test_data_directory().join("simple_simulation.json"),
+            test_data_directory().join("small_simulation_with_boundaries.json"),
+        ] {
+            let result = Simulation::from_reader(BufReader::new(
+                File::open(test_filename).unwrap(),
+            ))
+            .unwrap();
+            insta::assert_json_snapshot!(result);
+        }
     }
 
     #[test]
