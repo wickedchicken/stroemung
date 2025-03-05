@@ -62,6 +62,7 @@ pub enum SimulationGridError {
 pub struct BoundaryList {
     boundaries: BTreeSet<BoundaryIndex>,
     pub sorted_boundary_list: Vec<(GridIndex, Option<EdgeType>)>,
+    pub fluid_cells: Real,
     // This is scratch space so the vector doesn't keep getting reallocated
     // between simulation steps
     pub u_v_restore: Vec<(GridIndex, Option<Real>, Option<Real>)>,
@@ -135,6 +136,7 @@ impl TryFrom<UnfinalizedSimulationGrid> for SimulationGrid {
                 boundaries: Default::default(),
                 sorted_boundary_list: Default::default(),
                 u_v_restore: Vec::new(),
+                fluid_cells: 0.0,
             },
         };
         grid.rebuild_boundary_list()?;
@@ -190,6 +192,7 @@ impl SimulationGrid {
     }
 
     fn rebuild_boundary_list(&mut self) -> Result<(), SimulationGridError> {
+        let mut fluid_cells = 0;
         self.boundaries.boundaries.clear();
         self.boundaries.u_v_restore = Vec::new();
         // Run a for_each with the value and indices. See
@@ -199,6 +202,8 @@ impl SimulationGrid {
                 self.boundaries
                     .boundaries
                     .insert(BoundaryIndex(idx.0, idx.1));
+            } else {
+                fluid_cells += 1;
             }
         });
 
@@ -217,6 +222,7 @@ impl SimulationGrid {
             .map(get_neighbors)
             .collect();
         self.boundaries.sorted_boundary_list = result?;
+        self.boundaries.fluid_cells = fluid_cells as Real;
         Ok(())
     }
 
