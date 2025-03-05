@@ -15,6 +15,9 @@ expression: simulation
   "gamma": 1.7,
   "reynolds": 100.0,
   "initial_norm_squared": 0.0,
+  "sor_absolute_epsilon": 0.001,
+  "max_iterations": 100,
+  "omega": 1.7,
   "grid": {
     "size": [
       5,

@@ -1,6 +1,7 @@
 use std::fmt;
 use std::io::Read;
 
+use crate::cell::Cell;
 use crate::math::Real;
 use crate::math::{du2dx, duvdx, duvdy, dv2dy, laplacian, residual};
 
@@ -34,6 +35,9 @@ pub struct UnfinalizedSimulation {
     pub gamma: Real,
     pub reynolds: Real,
     pub initial_norm_squared: Option<Real>,
+    pub sor_absolute_epsilon: Real,
+    pub max_iterations: u32,
+    pub omega: Real,
     pub grid: UnfinalizedSimulationGrid,
 }
 
@@ -54,6 +58,9 @@ pub struct Simulation {
     #[serde(skip)]
     pub rhs: GridArray<Real>,
     pub initial_norm_squared: Option<Real>,
+    pub sor_absolute_epsilon: Real,
+    pub max_iterations: u32,
+    pub omega: Real,
     pub grid: SimulationGrid,
 }
 
@@ -73,6 +80,9 @@ impl TryFrom<UnfinalizedSimulation> for Simulation {
             g: Array::zeros(item.size),
             rhs: Array::zeros(item.size),
             initial_norm_squared: item.initial_norm_squared,
+            sor_absolute_epsilon: item.sor_absolute_epsilon,
+            max_iterations: item.max_iterations,
+            omega: item.omega,
             grid: item.grid.try_into()?,
         };
         sim.calculate_f_and_g();
@@ -219,6 +229,53 @@ impl Simulation {
         self.initial_norm_squared = Some(norm);
         norm
     }
+
+    fn solve_sor(&mut self) -> Result<(u32, Real), SimulationGridError> {
+        let delx2 = self.cell_size[0].powi(2);
+        let dely2 = self.cell_size[1].powi(2);
+
+        let one_minus_w = 1.0 - self.omega;
+        let middle = self.omega / ((2.0 / delx2) + (2.0 / dely2));
+
+        let epsilon_squared = self.sor_absolute_epsilon.powi(2);
+
+        let mut norm_squared = 0.0;
+
+        for i in 0..self.max_iterations {
+            self.grid.copy_pressure_to_boundaries()?;
+            // indexing instead of iterators :(
+            for x in 1..self.size[0] - 1 {
+                // indexing instead of iterators :(
+                for y in 1..self.size[1] - 1 {
+                    // if statement in inner loop :(
+                    if let Cell::Fluid = self.grid.cell_type[(x, y)] {
+                        // Note that we're modifying in place, so "minus one"
+                        // values have been computed for the next step already.
+                        let p_i_j = self.grid.pressure[(x, y)];
+                        let p_i_m1_j = self.grid.pressure[(x - 1, y)];
+                        let p_i_p1_j = self.grid.pressure[(x + 1, y)];
+                        let p_i_j_m1 = self.grid.pressure[(x, y - 1)];
+                        let p_i_j_p1 = self.grid.pressure[(x, y + 1)];
+                        let rhs = self.rhs[(x, y)];
+
+                        self.grid.pressure[(x, y)] = (one_minus_w * p_i_j)
+                            + middle
+                                * (((p_i_p1_j + p_i_m1_j) / delx2)
+                                    + ((p_i_j_p1 + p_i_j_m1) / dely2)
+                                    - rhs)
+                    }
+                }
+            }
+
+            let initial_norm_squared = self.get_initial_norm_squared();
+            norm_squared = self.calculate_norm_squared();
+
+            if (norm_squared < initial_norm_squared) || (norm_squared < epsilon_squared) {
+                return Ok((i + 1, norm_squared));
+            }
+        }
+        Ok((self.max_iterations, norm_squared))
+    }
 }
 
 /// Calculate F (the horizontal non-pressure part of the momentum equation)
@@ -317,6 +374,9 @@ mod tests {
             gamma,
             reynolds,
             initial_norm_squared: Default::default(),
+            sor_absolute_epsilon: 0.001,
+            max_iterations: 100,
+            omega: 1.7,
             grid: presets::empty(size).into(),
         })
         .unwrap();
