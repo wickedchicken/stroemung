@@ -50,6 +50,8 @@ pub struct Simulation {
     pub f: GridArray<Real>,
     #[serde(skip)]
     pub g: GridArray<Real>,
+    #[serde(skip)]
+    pub rhs: GridArray<Real>,
     pub grid: SimulationGrid,
 }
 
@@ -67,9 +69,11 @@ impl TryFrom<UnfinalizedSimulation> for Simulation {
             reynolds: item.reynolds,
             f: Array::zeros(item.size),
             g: Array::zeros(item.size),
+            rhs: Array::zeros(item.size),
             grid: item.grid.try_into()?,
         };
         sim.calculate_f_and_g();
+        sim.calculate_rhs();
         Ok(sim)
     }
 }
@@ -175,6 +179,18 @@ impl Simulation {
                 None | Some(_) => {}
             }
         }
+    }
+
+    fn calculate_rhs(&mut self) {
+        let mut rhs_view = self.rhs.slice_mut(s![1.., 1..]);
+        Zip::from(&mut rhs_view)
+            .and(self.f.windows((2, 2)))
+            .and(self.g.windows((2, 2)))
+            .for_each(|rhs, f_view, g_view| {
+                *rhs = (((f_view[(1, 1)] - f_view[(0, 1)]) / self.cell_size[0])
+                    + ((g_view[(1, 1)] - g_view[(1, 0)]) / self.cell_size[1]))
+                    / self.delt
+            });
     }
 }
 

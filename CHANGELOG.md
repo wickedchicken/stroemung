@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions to calculate F and G, the horizontal and vertical non-pressure parts of the
   discretized momentum equation.
 - Setup of U and V boundary conditions
+- Computation of the right-hand-side of the Poisson pressure equation
 
 ## [0.1.0] - 2025-02-04
 
