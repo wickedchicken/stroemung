@@ -276,6 +276,42 @@ impl Simulation {
         }
         Ok((self.max_iterations, norm_squared))
     }
+
+    pub fn set_u_and_v(&mut self) {
+        #[allow(clippy::reversed_empty_ranges)]
+        let mut u_view = self.grid.u.slice_mut(s![0..-1, 0..-1]);
+        #[allow(clippy::reversed_empty_ranges)]
+        let mut v_view = self.grid.v.slice_mut(s![0..-1, 0..-1]);
+
+        #[allow(clippy::reversed_empty_ranges)]
+        let f_view = self.f.slice_mut(s![0..-1, 0..-1]);
+
+        #[allow(clippy::reversed_empty_ranges)]
+        let g_view = self.g.slice_mut(s![0..-1, 0..-1]);
+
+        Zip::from(&mut u_view)
+            .and(&mut v_view)
+            .and(self.grid.pressure.windows((2, 2)))
+            .and(f_view)
+            .and(g_view)
+            .for_each(|u, v, p_view, f, g| {
+                let p_i_j = p_view[(0, 0)];
+                let p_i_p1_j = p_view[(1, 0)];
+                let p_i_j_p1 = p_view[(0, 1)];
+
+                *u = *f - (self.delt / self.cell_size[0]) * (p_i_p1_j - p_i_j);
+                *v = *g - (self.delt / self.cell_size[1]) * (p_i_j_p1 - p_i_j);
+            });
+
+        for (idx, maybe_u, maybe_v) in &self.grid.boundaries.u_v_restore {
+            if let Some(u) = maybe_u {
+                self.grid.u[*idx] = *u;
+            }
+            if let Some(v) = maybe_v {
+                self.grid.v[*idx] = *v;
+            }
+        }
+    }
 }
 
 /// Calculate F (the horizontal non-pressure part of the momentum equation)
