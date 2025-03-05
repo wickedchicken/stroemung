@@ -4,7 +4,7 @@
 [![CI](https://github.com/wickedchicken/stroemung/workflows/CI/badge.svg)](https://github.com/wickedchicken/stroemung/actions)
 [![HireMe](hire_me.svg)](https://wickedchicken.github.io/post/hire-me/)
 
-![Screenshot](screenshot.png)]
+![Screenshot](screenshot.png)
 
 A Computational Fluid Dynamics (CFD) simulator in Rust.
 
