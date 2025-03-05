@@ -280,6 +280,7 @@ impl Simulation {
                 return Ok((i + 1, norm_squared));
             }
         }
+        self.grid.calculate_pressure_range();
         Ok((self.max_iterations, norm_squared))
     }
 
@@ -317,6 +318,7 @@ impl Simulation {
                 self.grid.v[*idx] = *v;
             }
         }
+        self.grid.calculate_speed_range();
     }
 
     pub fn run_simulation_tick(&mut self) -> Result<(u32, Real), SimulationError> {

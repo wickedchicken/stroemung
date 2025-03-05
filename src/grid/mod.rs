@@ -118,6 +118,10 @@ pub struct SimulationGrid {
     pub cell_type: GridArray<Cell>,
     #[serde(skip)]
     pub boundaries: BoundaryList,
+    #[serde(skip)]
+    pub pressure_range: [Real; 2],
+    #[serde(skip)]
+    pub speed_range: [Real; 2],
 }
 
 impl TryFrom<UnfinalizedSimulationGrid> for SimulationGrid {
@@ -138,8 +142,12 @@ impl TryFrom<UnfinalizedSimulationGrid> for SimulationGrid {
                 u_v_restore: Vec::new(),
                 fluid_cells: 0.0,
             },
+            pressure_range: [0.0, 0.0],
+            speed_range: [0.0, 0.0],
         };
         grid.rebuild_boundary_list()?;
+        grid.calculate_pressure_range();
+        grid.calculate_speed_range();
         Ok(grid)
     }
 }
@@ -224,6 +232,39 @@ impl SimulationGrid {
         self.boundaries.sorted_boundary_list = result?;
         self.boundaries.fluid_cells = fluid_cells as Real;
         Ok(())
+    }
+
+    pub fn calculate_pressure_range(&mut self) {
+        let (min, max) = Zip::from(&self.pressure).and(&self.cell_type).fold(
+            (Real::MAX, 0.0),
+            |acc, p, cell_type| {
+                // if statement in inner loop :(
+                if let Cell::Fluid = cell_type {
+                    let (min, max) = acc;
+                    (Real::min(min, *p), Real::max(max, *p))
+                } else {
+                    acc
+                }
+            },
+        );
+        self.pressure_range = [min, max];
+    }
+
+    pub fn calculate_speed_range(&mut self) {
+        let (min, max) = Zip::from(&self.u).and(&self.v).and(&self.cell_type).fold(
+            (Real::MAX, 0.0),
+            |acc, u, v, cell_type| {
+                // if statement in inner loop :(
+                if let Cell::Fluid = cell_type {
+                    let (min, max) = acc;
+                    let speed_squared = u.powi(2) + v.powi(2);
+                    (Real::min(min, speed_squared), Real::max(max, speed_squared))
+                } else {
+                    acc
+                }
+            },
+        );
+        self.speed_range = [min.sqrt(), max.sqrt()];
     }
 
     fn calculate_edges(
