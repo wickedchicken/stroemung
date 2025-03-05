@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Computation of new U and V values based on pressure solution
 - "Inflow" grid preset, which is an empty fluid grid with upper and lower no-slip
   boundaries, an inflow boundary on the left and an outflow boundary on the right.
+- Function to advance the simulation state by one iteration ("tick").
 
 ## [0.1.0] - 2025-02-04
 

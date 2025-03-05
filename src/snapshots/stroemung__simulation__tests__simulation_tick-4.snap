@@ -1,0 +1,140 @@
+---
+source: src/simulation.rs
+expression: sim
+---
+{
+  "size": [
+    4,
+    3
+  ],
+  "cell_size": [
+    0.1,
+    0.2
+  ],
+  "delt": 0.005,
+  "gamma": 0.9,
+  "reynolds": 100.0,
+  "initial_norm_squared": 0.0,
+  "sor_absolute_epsilon": 0.001,
+  "max_iterations": 100,
+  "iterations": 1,
+  "time": 0.005,
+  "omega": 1.7,
+  "grid": {
+    "size": [
+      4,
+      3
+    ],
+    "pressure": {
+      "v": 1,
+      "dim": [
+        4,
+        3
+      ],
+      "data": [
+        0.0,
+        1023.2374885215679,
+        0.0,
+        1023.2374885215679,
+        1033.5405188245982,
+        1023.2374885215679,
+        1018.9640036730833,
+        1029.2670339761135,
+        1018.9640036730833,
+        0.0,
+        1018.9640036730833,
+        0.0
+      ]
+    },
+    "u": {
+      "v": 1,
+      "dim": [
+        4,
+        3
+      ],
+      "data": [
+        0.0,
+        1.0,
+        0.0,
+        -0.0,
+        0.24242424242423566,
+        -0.0,
+        -0.0,
+        0.515151515151507,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "v": {
+      "v": 1,
+      "dim": [
+        4,
+        3
+      ],
+      "data": [
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.25757575757575635,
+        0.0,
+        0.0,
+        0.2575757575757535,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "cell_type": {
+      "v": 1,
+      "dim": [
+        4,
+        3
+      ],
+      "data": [
+        {
+          "Boundary": "NoSlip"
+        },
+        {
+          "Boundary": {
+            "Inflow": {
+              "velocity": [
+                1.0,
+                0.0
+              ]
+            }
+          }
+        },
+        {
+          "Boundary": "NoSlip"
+        },
+        {
+          "Boundary": "NoSlip"
+        },
+        "Fluid",
+        {
+          "Boundary": "NoSlip"
+        },
+        {
+          "Boundary": "NoSlip"
+        },
+        "Fluid",
+        {
+          "Boundary": "NoSlip"
+        },
+        {
+          "Boundary": "NoSlip"
+        },
+        {
+          "Boundary": "Outflow"
+        },
+        {
+          "Boundary": "NoSlip"
+        }
+      ]
+    }
+  }
+}

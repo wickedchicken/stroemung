@@ -17,6 +17,8 @@ expression: simulation
   "initial_norm_squared": 0.0,
   "sor_absolute_epsilon": 0.001,
   "max_iterations": 100,
+  "iterations": 0,
+  "time": 0.0,
   "omega": 1.7,
   "grid": {
     "size": [
