@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Setup of U and V boundary conditions
 - Computation of the right-hand-side of the Poisson pressure equation
 - Computation of the L2 norm of the pressure residual
+- Ability to solve the Poisson pressure equation via successive over-relaxation (SOR).
 
 ## [0.1.0] - 2025-02-04
 
