@@ -4,25 +4,177 @@ pub mod grid;
 pub mod math;
 pub mod simulation;
 pub mod types;
+pub mod ui_state;
 pub mod visualization;
 
+use crate::ui_state::initialize_state;
+use crate::visualization::render_simulation;
+use crate::visualization::ColorType;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
 use args::Args;
-use grid::SimulationGrid;
+use simulation::{Simulation, UnfinalizedSimulation};
 
-pub fn run(args: Args) {
+use macroquad::prelude::*;
+
+use macroquad::ui::{hash, root_ui};
+
+pub fn window_conf() -> Conf {
+    Conf {
+        window_title: "Stroemung".to_owned(),
+        ..Default::default()
+    }
+}
+
+pub async fn run(args: Args) {
     println!("Exécute des simulations...");
-    println!("Grid size {} x {}", args.x_cells, args.y_cells);
-    let grid = match args.grid_file {
+
+    let mut sim = match args.sim_file {
         Some(filename) => {
             let file = File::open(Path::new(&filename)).unwrap();
-            SimulationGrid::from_reader(BufReader::new(file)).unwrap()
+            Simulation::from_reader(BufReader::new(file)).unwrap()
         }
-        _ => grid::presets::empty([args.x_cells, args.y_cells]),
+        _ => {
+            let size = [args.x_cells, args.y_cells];
+            Simulation::try_from(UnfinalizedSimulation {
+                size,
+                cell_size: [args.x_cell_width, args.y_cell_height],
+                delt: args.delta_t,
+                gamma: args.gamma,
+                reynolds: args.reynolds,
+                sor_absolute_epsilon: args.sor_epsilon,
+                max_iterations: args.sor_max_iterations,
+                initial_norm_squared: None,
+                iterations: 0,
+                time: 0.0,
+                omega: args.omega,
+                grid: grid::presets::obstacle(size).into(),
+            })
+            .unwrap()
+        }
     };
 
-    println!("{}", grid);
+    println!("Grid size {} x {}", sim.size[0], sim.size[1]);
+
+    let [w, h] = sim.size;
+
+    let scaling = 4;
+
+    let mut image = Image::gen_image_color(w as u16, h as u16, WHITE);
+
+    let texture = Texture2D::from_image(&image);
+
+    let mut ui_state = initialize_state();
+
+    loop {
+        let (mouse_x, mouse_y) = mouse_position();
+
+        clear_background(WHITE);
+
+        root_ui().window(
+            hash!(),
+            Vec2::new(20., (h * scaling) as f32 + 105.),
+            Vec2::new(200., 150.),
+            |ui| {
+                ui.group(hash!(), vec2(190.0, 145.0), |ui| {
+                    ui.label(None, "Controls");
+
+                    if ui.button(None, "Run / Pause") {
+                        ui_state.keep_running = !ui_state.keep_running;
+                    }
+                    ui.group(hash!(), vec2(50.0, 50.0), |ui| {
+                        if ui.button(None, "Slower") {
+                            // There's a bad UI interaction that happens if this
+                            // if is collapsed into the ui.button code above,
+                            // I assume it has to do with short-circuiting the
+                            // && somehow.
+                            #[allow(clippy::collapsible_if)]
+                            if ui_state.speed_multiplier > 1 {
+                                ui_state.speed_multiplier -= 1;
+                            }
+                        }
+                        if ui.button(None, "Faster") {
+                            ui_state.speed_multiplier += 1;
+                        }
+                    });
+
+                    if ui.button(None, "Run one simulation step") {
+                        ui_state.run = true;
+                    }
+
+                    if ui.button(None, "Visualize Speed") {
+                        ui_state.color_type = ColorType::Speed;
+                    }
+                    if ui.button(None, "Visualize Pressure") {
+                        ui_state.color_type = ColorType::Pressure;
+                    }
+                });
+            },
+        );
+
+        // Set to 1 in case the user asked to run one iteration.
+        let mut speed_multiplier = 1;
+
+        if ui_state.keep_running {
+            ui_state.run = true;
+            // Set to the multiplier in case the user asked to keep running the
+            // simulation.
+            speed_multiplier = ui_state.speed_multiplier;
+        }
+
+        if ui_state.run {
+            for _ in 0..speed_multiplier {
+                sim.run_simulation_tick().unwrap();
+            }
+            ui_state.run = false;
+        }
+
+        render_simulation(&sim, &mut image, w, h, ui_state.color_type);
+
+        texture.update(&image);
+        draw_texture_ex(
+            &texture,
+            0.,
+            0.,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2((w * scaling) as f32, (h * scaling) as f32)),
+                ..Default::default()
+            },
+        );
+
+        let m_x = (mouse_x / (scaling as f32)) as usize;
+        let m_y = (mouse_y / (scaling as f32)) as usize;
+        if (m_x < w) && (m_y < h) {
+            let inspect_cell_pressure = sim.grid.pressure[(m_x, m_y)];
+            let inspect_cell_speed =
+                (sim.grid.u[(m_x, m_y)].powi(2) + sim.grid.v[(m_x, m_y)].powi(2)).sqrt();
+            draw_text(
+                &format!(
+                    "x: {:?}, y: {:?}, press: {:.2?}, speed: {:.2?}",
+                    m_x, m_y, inspect_cell_pressure, inspect_cell_speed
+                )
+                .to_string(),
+                20.0,
+                (h * scaling) as f32 + 35.0,
+                30.0,
+                DARKGREEN,
+            );
+        }
+        draw_text(
+            &format!(
+                "time: {:.2?}, iter: {:?}, speedup: {:?}",
+                sim.time, sim.iterations, ui_state.speed_multiplier
+            )
+            .to_string(),
+            20.0,
+            (h * scaling) as f32 + 65.0,
+            30.0,
+            DARKGREEN,
+        );
+
+        next_frame().await
+    }
 }

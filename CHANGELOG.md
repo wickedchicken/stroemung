@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Obstacle" grid preset, which is a fluid grid with upper and lower no-slip
   boundaries, an inflow boundary on the left, an outflow boundary on the right, and
   a circle no-slip obstacle boundary near the left side of the simulation grid.
+- Basic GUI frontend to visualize the simulation.
 
 ## [0.1.0] - 2025-02-04
 
