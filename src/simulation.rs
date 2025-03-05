@@ -37,6 +37,8 @@ pub struct UnfinalizedSimulation {
     pub initial_norm_squared: Option<Real>,
     pub sor_absolute_epsilon: Real,
     pub max_iterations: u32,
+    pub iterations: u32,
+    pub time: Real,
     pub omega: Real,
     pub grid: UnfinalizedSimulationGrid,
 }
@@ -60,6 +62,8 @@ pub struct Simulation {
     pub initial_norm_squared: Option<Real>,
     pub sor_absolute_epsilon: Real,
     pub max_iterations: u32,
+    pub iterations: u32,
+    pub time: Real,
     pub omega: Real,
     pub grid: SimulationGrid,
 }
@@ -82,6 +86,8 @@ impl TryFrom<UnfinalizedSimulation> for Simulation {
             initial_norm_squared: item.initial_norm_squared,
             sor_absolute_epsilon: item.sor_absolute_epsilon,
             max_iterations: item.max_iterations,
+            iterations: item.iterations,
+            time: item.time,
             omega: item.omega,
             grid: item.grid.try_into()?,
         };
@@ -312,6 +318,17 @@ impl Simulation {
             }
         }
     }
+
+    pub fn run_simulation_tick(&mut self) -> Result<(u32, Real), SimulationError> {
+        self.grid.set_boundary_u_and_v()?;
+        self.calculate_f_and_g();
+        self.calculate_rhs();
+        let (sor_iterations, norm_squared) = self.solve_sor()?;
+        self.set_u_and_v();
+        self.time += self.delt;
+        self.iterations += 1;
+        Ok((sor_iterations, norm_squared))
+    }
 }
 
 /// Calculate F (the horizontal non-pressure part of the momentum equation)
@@ -412,6 +429,8 @@ mod tests {
             initial_norm_squared: Default::default(),
             sor_absolute_epsilon: 0.001,
             max_iterations: 100,
+            iterations: 0,
+            time: 0.0,
             omega: 1.7,
             grid: presets::empty(size).into(),
         })
@@ -540,5 +559,54 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn simulation_tick() {
+        let size = [4, 3];
+        let mut sim = Simulation::try_from(UnfinalizedSimulation {
+            size,
+            cell_size: [0.1, 0.2],
+            delt: 0.005,
+            gamma: 0.9,
+            reynolds: 100.0,
+            sor_absolute_epsilon: 0.001,
+            max_iterations: 100,
+            initial_norm_squared: None,
+            iterations: 0,
+            time: 0.0,
+            omega: 1.7,
+            grid: presets::simple_inflow(size).into(),
+        })
+        .unwrap();
+
+        let (sor_iterations, norm_squared) = sim.run_simulation_tick().unwrap();
+        insta::assert_json_snapshot!(sim.f);
+        insta::assert_json_snapshot!(sim.g);
+        insta::assert_json_snapshot!(sim.rhs);
+        insta::assert_json_snapshot!(sim);
+        // SOR is bad at converging on "unphysical" initial conditions, hence
+        // the first few ticks are expected to stop after max_iterations.
+        assert_eq!(sor_iterations, 100);
+        assert_eq!(norm_squared, 562901.7447199143);
+
+        let mut last_sor_iterations = 0;
+        let mut last_norm_squared = 0.0;
+        for _ in 0..100 {
+            (last_sor_iterations, last_norm_squared) = sim.run_simulation_tick().unwrap();
+        }
+        assert_eq!(last_sor_iterations, 1);
+        assert_eq!(last_norm_squared, 3.8344148218167323e-20);
+        insta::assert_json_snapshot!(sim.f);
+        insta::assert_json_snapshot!(sim.g);
+        insta::assert_json_snapshot!(sim.rhs);
+        insta::assert_json_snapshot!(sim);
+
+        for _ in 0..100 {
+            sim.run_simulation_tick().unwrap();
+        }
+        // We're interested to see if the pressure and velocity
+        // stay stable after 100 iterations
+        insta::assert_json_snapshot!(sim);
     }
 }
