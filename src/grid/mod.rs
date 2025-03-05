@@ -298,6 +298,78 @@ impl SimulationGrid {
             Err(x) => Err(SimulationGridError::DeserializationError(x)),
         }
     }
+
+    pub fn copy_pressure_to_boundaries(&mut self) -> Result<(), SimulationGridError> {
+        for (boundary_idx, maybe_edge) in &self.boundaries.sorted_boundary_list {
+            // Don't do anything if we're not on a boundary.
+            let Some(edge) = maybe_edge else {
+                continue;
+            };
+            match self.cell_type[*boundary_idx] {
+                Cell::Boundary(_) => {
+                    match edge {
+                        EdgeType::North { north_neighbor } => {
+                            self.pressure[*boundary_idx] = self.pressure[*north_neighbor]
+                        }
+                        EdgeType::NorthEast {
+                            north_neighbor,
+                            east_neighbor,
+                        } => {
+                            self.pressure[*boundary_idx] = (self.pressure
+                                [*north_neighbor]
+                                + self.pressure[*east_neighbor])
+                                / 2.0
+                        }
+                        EdgeType::East { east_neighbor } => {
+                            self.pressure[*boundary_idx] = self.pressure[*east_neighbor]
+                        }
+                        EdgeType::SouthEast {
+                            south_neighbor,
+                            east_neighbor,
+                        } => {
+                            self.pressure[*boundary_idx] = (self.pressure
+                                [*south_neighbor]
+                                + self.pressure[*east_neighbor])
+                                / 2.0
+                        }
+                        EdgeType::South { south_neighbor } => {
+                            self.pressure[*boundary_idx] = self.pressure[*south_neighbor]
+                        }
+                        EdgeType::SouthWest {
+                            south_neighbor,
+                            west_neighbor,
+                        } => {
+                            self.pressure[*boundary_idx] = (self.pressure
+                                [*south_neighbor]
+                                + self.pressure[*west_neighbor])
+                                / 2.0
+                        }
+                        EdgeType::West { west_neighbor } => {
+                            self.pressure[*boundary_idx] = self.pressure[*west_neighbor]
+                        }
+                        EdgeType::NorthWest {
+                            north_neighbor,
+                            west_neighbor,
+                        } => {
+                            self.pressure[*boundary_idx] = (self.pressure
+                                [*north_neighbor]
+                                + self.pressure[*west_neighbor])
+                                / 2.0
+                        }
+                    };
+                }
+                other => {
+                    return Err(SimulationGridError::BoundaryListIncorrectError(
+                        other.to_string(),
+                        format!("{:?}", *boundary_idx),
+                    ))
+                }
+            };
+        }
+
+        Ok(())
+    }
+
     pub fn set_boundary_u_and_v(&mut self) -> Result<(), SimulationGridError> {
         // We're going to copy u and v back into the vector in the loop
         self.boundaries.u_v_restore.clear();
