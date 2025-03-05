@@ -11,10 +11,12 @@ use serde_json::Error as SerdeError;
 
 use thiserror::Error;
 
-use crate::grid::{SimulationGrid, SimulationGridError, UnfinalizedSimulationGrid};
-use crate::types::{CellPhysicalSize, GridSize};
+use crate::grid::{
+    EdgeType, SimulationGrid, SimulationGridError, UnfinalizedSimulationGrid,
+};
+use crate::types::{CellPhysicalSize, GridArray, GridSize};
 
-use ndarray::ArrayView2;
+use ndarray::{s, Array, ArrayView2, Zip};
 
 #[derive(Error, Debug)]
 pub enum SimulationError {
@@ -44,6 +46,10 @@ pub struct Simulation {
     pub delt: Real,
     pub gamma: Real,
     pub reynolds: Real,
+    #[serde(skip)]
+    pub f: GridArray<Real>,
+    #[serde(skip)]
+    pub g: GridArray<Real>,
     pub grid: SimulationGrid,
 }
 
@@ -53,14 +59,18 @@ impl TryFrom<UnfinalizedSimulation> for Simulation {
     fn try_from(item: UnfinalizedSimulation) -> Result<Self, Self::Error> {
         // Will be nicer once https://github.com/rust-lang/rust/issues/86555
         // is in stable.
-        Ok(Simulation {
+        let mut sim = Simulation {
             size: item.size,
             cell_size: item.cell_size,
             delt: item.delt,
             gamma: item.gamma,
             reynolds: item.reynolds,
+            f: Array::zeros(item.size),
+            g: Array::zeros(item.size),
             grid: item.grid.try_into()?,
-        })
+        };
+        sim.calculate_f_and_g();
+        Ok(sim)
     }
 }
 
@@ -83,6 +93,88 @@ impl Simulation {
     pub fn from_reader<R: Read>(reader: R) -> Result<Simulation, SimulationError> {
         let unfinalized: UnfinalizedSimulation = serde_json::from_reader(reader)?;
         Simulation::try_from(unfinalized)
+    }
+
+    fn calculate_f_and_g(&mut self) {
+        // Ignore outer boundary. This also gives us the correct shape, because
+        // everything is computed using 3x3 grids which aren't defined on the
+        // boundary.
+        // Clippy doesn't like ndarray slicing with negative indices. See
+        // https://github.com/rust-lang/rust-clippy/issues/5808 and
+        // https://github.com/rust-ndarray/ndarray/pull/1279 for details.
+        #[allow(clippy::reversed_empty_ranges)]
+        let mut f_window = self.f.slice_mut(s![1..-1, 1..-1]);
+        #[allow(clippy::reversed_empty_ranges)]
+        let mut g_window = self.g.slice_mut(s![1..-1, 1..-1]);
+
+        // ndarray doesn't have masked arrays. To avoid an if statement inside
+        // a core loop, we compute F and G over everything and postprocess the
+        // boundaries afterward. It would be good to benchmark if this is
+        // actually helpful or not.
+        Zip::from(&mut f_window)
+            .and(&mut g_window)
+            .and(self.grid.u.windows((3, 3)))
+            .and(self.grid.v.windows((3, 3)))
+            .for_each(|f, g, u_view, v_view| {
+                *f = calculate_f(
+                    u_view,
+                    v_view,
+                    self.cell_size[0],
+                    self.cell_size[1],
+                    self.delt,
+                    self.gamma,
+                    self.reynolds,
+                );
+                *g = calculate_g(
+                    u_view,
+                    v_view,
+                    self.cell_size[0],
+                    self.cell_size[1],
+                    self.delt,
+                    self.gamma,
+                    self.reynolds,
+                );
+            });
+
+        // Restore F and G on boundary edges, where they shouldn't have been
+        // updated
+        // Todo: maybe restore with a fixed save list like
+        // self.grid.boundaries.u_v_restore
+        for (boundary_idx, maybe_edge) in &self.grid.boundaries.sorted_boundary_list {
+            self.f[*boundary_idx] = self.grid.u[*boundary_idx];
+            self.g[*boundary_idx] = self.grid.v[*boundary_idx];
+
+            // North and west boundaries also need their corresponding fluid
+            // neighbors updated.
+            match maybe_edge {
+                Some(EdgeType::North { north_neighbor }) => {
+                    self.g[*north_neighbor] = self.grid.v[*north_neighbor];
+                }
+                Some(EdgeType::NorthWest {
+                    north_neighbor,
+                    west_neighbor,
+                }) => {
+                    self.f[*west_neighbor] = self.grid.u[*west_neighbor];
+                    self.g[*north_neighbor] = self.grid.v[*north_neighbor];
+                }
+                Some(EdgeType::West { west_neighbor }) => {
+                    self.f[*west_neighbor] = self.grid.u[*west_neighbor];
+                }
+                Some(EdgeType::SouthWest {
+                    south_neighbor: _,
+                    west_neighbor,
+                }) => {
+                    self.f[*west_neighbor] = self.grid.u[*west_neighbor];
+                }
+                Some(EdgeType::NorthEast {
+                    north_neighbor,
+                    east_neighbor: _,
+                }) => {
+                    self.g[*north_neighbor] = self.grid.v[*north_neighbor];
+                }
+                None | Some(_) => {}
+            }
+        }
     }
 }
 
