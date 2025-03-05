@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Inflow" grid preset, which is an empty fluid grid with upper and lower no-slip
   boundaries, an inflow boundary on the left and an outflow boundary on the right.
 - Function to advance the simulation state by one iteration ("tick").
+- "Obstacle" grid preset, which is a fluid grid with upper and lower no-slip
+  boundaries, an inflow boundary on the left, an outflow boundary on the right, and
+  a circle no-slip obstacle boundary near the left side of the simulation grid.
 
 ## [0.1.0] - 2025-02-04
 
