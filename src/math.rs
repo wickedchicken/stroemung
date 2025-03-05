@@ -173,6 +173,17 @@ pub fn laplacian(view: ArrayView2<Real>, delx: Real, dely: Real) -> Real {
     d2edx2 + d2edy2
 }
 
+pub fn residual(p_view: ArrayView2<Real>, delx: Real, dely: Real, rhs: Real) -> Real {
+    let p_i_p1_j = p_view[(2, 1)];
+    let p_i_j = p_view[(1, 1)];
+    let p_i_m1_j = p_view[(0, 1)];
+    let p_i_j_p1 = p_view[(1, 2)];
+    let p_i_j_m1 = p_view[(1, 0)];
+
+    let part1 = ((p_i_p1_j - p_i_j) - (p_i_j - p_i_m1_j)) / delx.powi(2);
+    let part2 = ((p_i_j_p1 - p_i_j) - (p_i_j - p_i_j_m1)) / dely.powi(2);
+    part1 + part2 - rhs
+}
 #[cfg(test)]
 mod tests {
     use super::*;

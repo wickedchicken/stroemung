@@ -2,7 +2,7 @@ use std::fmt;
 use std::io::Read;
 
 use crate::math::Real;
-use crate::math::{du2dx, duvdx, duvdy, dv2dy, laplacian};
+use crate::math::{du2dx, duvdx, duvdy, dv2dy, laplacian, residual};
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -33,6 +33,7 @@ pub struct UnfinalizedSimulation {
     pub delt: Real,
     pub gamma: Real,
     pub reynolds: Real,
+    pub initial_norm_squared: Option<Real>,
     pub grid: UnfinalizedSimulationGrid,
 }
 
@@ -52,6 +53,7 @@ pub struct Simulation {
     pub g: GridArray<Real>,
     #[serde(skip)]
     pub rhs: GridArray<Real>,
+    pub initial_norm_squared: Option<Real>,
     pub grid: SimulationGrid,
 }
 
@@ -70,10 +72,12 @@ impl TryFrom<UnfinalizedSimulation> for Simulation {
             f: Array::zeros(item.size),
             g: Array::zeros(item.size),
             rhs: Array::zeros(item.size),
+            initial_norm_squared: item.initial_norm_squared,
             grid: item.grid.try_into()?,
         };
         sim.calculate_f_and_g();
         sim.calculate_rhs();
+        sim.get_initial_norm_squared();
         Ok(sim)
     }
 }
@@ -192,6 +196,29 @@ impl Simulation {
                     / self.delt
             });
     }
+
+    fn calculate_norm_squared(&self) -> Real {
+        #[allow(clippy::reversed_empty_ranges)]
+        let rhses = self.rhs.slice(s![1..-1, 1..-1]);
+
+        let sums = Zip::from(self.grid.pressure.windows((3, 3)))
+            .and(rhses)
+            .fold(0.0, |acc, p_view, rhs| {
+                acc + residual(p_view, self.cell_size[0], self.cell_size[1], *rhs).powi(2)
+            });
+
+        sums / self.grid.boundaries.fluid_cells
+    }
+
+    fn get_initial_norm_squared(&mut self) -> Real {
+        if let Some(norm) = self.initial_norm_squared {
+            return norm;
+        }
+
+        let norm = self.calculate_norm_squared();
+        self.initial_norm_squared = Some(norm);
+        norm
+    }
 }
 
 /// Calculate F (the horizontal non-pressure part of the momentum equation)
@@ -289,6 +316,7 @@ mod tests {
             delt,
             gamma,
             reynolds,
+            initial_norm_squared: Default::default(),
             grid: presets::empty(size).into(),
         })
         .unwrap();
