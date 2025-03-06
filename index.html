@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Strömung</title>
+    <style>
+        html {
+            background-color: #eee8d5;
+            color: #657b83;
+            margin: 1em;
+        },
+        body {
+            background-color: #fdf6e3;
+            margin: 0 auto;
+            max-width: 23cm;
+            border: 1pt solid #93a1a1;
+            padding: 1em;
+        },
+        p {
+            font-family: sans-serif;
+        }
+        canvas {
+            margin: 0;
+            padding: 0;
+            width: 700px;
+            height: 500px;
+/*            overflow: hidden;
+            z-index: 0;
+*/        }
+    </style>
+</head>
+<body>
+    <p> Hello, and welcome to <a href="https://github.com/wickedchicken/stroemung">Strömung!</a> Feel free to click inside the simulation grid
+        to paint boundaries. You can also paint fluid cells, but the
+        simulation will prevent you from leaving a boundary cell with
+        fluid on both sides. If you can't remove a boundary because of this,
+        either paint over it or reset the simulation. Have fun!
+    </p>
+    <canvas id="glcanvas" tabindex='1'></canvas>
+    <script src="assets/mq_js_bundle.js"></script>
+    <script>load("./stroemung.wasm");</script> <!-- Your compiled WASM binary -->
+</body>
+</html>
