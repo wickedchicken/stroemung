@@ -7,7 +7,7 @@ pub mod types;
 pub mod ui_state;
 pub mod visualization;
 
-use crate::ui_state::initialize_state;
+use crate::ui_state::{initialize_state, MouseState};
 use crate::visualization::render_simulation;
 use crate::visualization::ColorType;
 use std::fs::File;
@@ -15,7 +15,11 @@ use std::io::BufReader;
 use std::path::Path;
 
 use args::Args;
+use cell::{BoundaryCell, Cell};
+use grid::{presets, SimulationGrid};
+use math::Real;
 use simulation::{Simulation, UnfinalizedSimulation};
+use types::GridIndex;
 
 use macroquad::prelude::*;
 
@@ -28,10 +32,52 @@ pub fn window_conf() -> Conf {
     }
 }
 
-pub async fn run(args: Args) {
-    println!("Exécute des simulations...");
+// Draw a 2x2 square since the simulation doesn't support boundary cells that
+// have fluid cells on opposite sides.
+fn draw_cells(grid: &mut SimulationGrid, cell_type: Cell, m_x: usize, m_y: usize) {
+    let mut backup: Vec<(GridIndex, Real, Real, Real, Cell)> = Vec::new();
+    let mut modified = false;
 
-    let mut sim = match args.sim_file {
+    for (x, y) in [
+        (m_x, m_y),
+        (m_x + 1, m_y),
+        (m_x, m_y + 1),
+        (m_x + 1, m_y + 1),
+    ] {
+        // Don't touch outer boundary cells
+        if (x > 0) && (x < grid.size[0] - 1) && (y > 0) && (y < grid.size[1] - 1) {
+            let idx = (x, y);
+            if grid.cell_type[idx] != cell_type {
+                // Backup the values so we can restore them in the event that
+                // this creates an invalid boundary.
+                backup.push((
+                    idx,
+                    grid.u[idx],
+                    grid.v[idx],
+                    grid.pressure[idx],
+                    grid.cell_type[idx],
+                ));
+                grid.u[idx] = 0.0;
+                grid.v[idx] = 0.0;
+                grid.pressure[idx] = 0.0;
+                grid.cell_type[idx] = cell_type;
+                modified = true;
+            }
+        }
+    }
+
+    if modified && grid.rebuild_boundary_list().is_err() {
+        for (idx, u, v, pressure, cell) in backup {
+            grid.u[idx] = u;
+            grid.v[idx] = v;
+            grid.pressure[idx] = pressure;
+            grid.cell_type[idx] = cell;
+        }
+    }
+}
+
+fn get_sim(args: &Args) -> Simulation {
+    match &args.sim_file {
         Some(filename) => {
             let file = File::open(Path::new(&filename)).unwrap();
             Simulation::from_reader(BufReader::new(file)).unwrap()
@@ -50,11 +96,17 @@ pub async fn run(args: Args) {
                 iterations: 0,
                 time: 0.0,
                 omega: args.omega,
-                grid: grid::presets::obstacle(size).into(),
+                grid: presets::obstacle(size).into(),
             })
             .unwrap()
         }
-    };
+    }
+}
+
+pub async fn run(args: Args) {
+    println!("Exécute des simulations...");
+
+    let mut sim = get_sim(&args);
 
     println!("Grid size {} x {}", sim.size[0], sim.size[1]);
 
@@ -76,9 +128,9 @@ pub async fn run(args: Args) {
         root_ui().window(
             hash!(),
             Vec2::new(20., (h * scaling) as f32 + 105.),
-            Vec2::new(200., 150.),
+            Vec2::new(200., 250.),
             |ui| {
-                ui.group(hash!(), vec2(190.0, 145.0), |ui| {
+                ui.group(hash!(), vec2(190.0, 245.0), |ui| {
                     ui.label(None, "Controls");
 
                     if ui.button(None, "Run / Pause") {
@@ -110,9 +162,26 @@ pub async fn run(args: Args) {
                     if ui.button(None, "Visualize Pressure") {
                         ui_state.color_type = ColorType::Pressure;
                     }
+                    if ui.button(None, "Reset Simulation") {
+                        ui_state.reset = true;
+                    }
+                    if ui.button(None, "Mouse Inspects") {
+                        ui_state.mouse_state = MouseState::Inspection;
+                    }
+                    if ui.button(None, "Mouse Draws Boundaries") {
+                        ui_state.mouse_state = MouseState::Boundary;
+                    }
+                    if ui.button(None, "Mouse Draws Fluid") {
+                        ui_state.mouse_state = MouseState::Fluid;
+                    }
                 });
             },
         );
+
+        if ui_state.reset {
+            sim = get_sim(&args);
+            ui_state.reset = false;
+        }
 
         // Set to 1 in case the user asked to run one iteration.
         let mut speed_multiplier = 1;
@@ -147,6 +216,7 @@ pub async fn run(args: Args) {
 
         let m_x = (mouse_x / (scaling as f32)) as usize;
         let m_y = (mouse_y / (scaling as f32)) as usize;
+
         if (m_x < w) && (m_y < h) {
             let inspect_cell_pressure = sim.grid.pressure[(m_x, m_y)];
             let inspect_cell_speed =
@@ -162,6 +232,19 @@ pub async fn run(args: Args) {
                 30.0,
                 DARKGREEN,
             );
+
+            if is_mouse_button_down(MouseButton::Left) {
+                match ui_state.mouse_state {
+                    MouseState::Boundary => draw_cells(
+                        &mut sim.grid,
+                        Cell::Boundary(BoundaryCell::NoSlip),
+                        m_x,
+                        m_y,
+                    ),
+                    MouseState::Fluid => draw_cells(&mut sim.grid, Cell::Fluid, m_x, m_y),
+                    _ => {}
+                }
+            }
         }
         draw_text(
             &format!(

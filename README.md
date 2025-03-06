@@ -65,6 +65,13 @@ cargo run --release
 Click "Run / Pause" to start the simulation, or "Run one simulation step" to iterate one
 step.
 
+You can draw boundary or fluid cells with the mouse by clicking on the
+appropriate buttons. Note that the simulation doesn't allow for boundary
+cells that have fluid on opposite sides. If you attempt to paint fluid
+cells that create such a boundary, the drawing tool will simply reject
+it. If you create a weird boundary pattern that you can't delete, just
+paint over it with boundary cells again or reset the simulation.
+
 Some simulation parameters can be adjusted from the command-line, see
 
 ```sh
