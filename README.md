@@ -8,6 +8,12 @@
 
 A Computational Fluid Dynamics (CFD) simulator in Rust.
 
+## Run in Your Browser
+
+You can run `stroemung` directly in your browser thanks to the magic of Wasm! Go to
+https://wickedchicken.github.io/stroemung/ to check it out. You can draw boundaries or
+fluid with your mouse directly on the grid.
+
 ## Intro
 
 `stroemung` implements a 2D fluid dynamics simulation based on
