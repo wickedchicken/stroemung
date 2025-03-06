@@ -125,3 +125,49 @@ jobs:
       - run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  publish-web-build:
+    name: Building and uploading GitHub Pages content
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Build
+        run: cargo build --release --target wasm32-unknown-unknown
+
+      - name: Prepare Deployment Directory
+        run: |
+          mkdir -p ./deploy/assets
+          cp ./target/wasm32-unknown-unknown/release/stroemung.wasm ./deploy/
+          cp index.html ./deploy/
+          cp -r assets/ ./deploy/
+
+      - name: Upload static files as artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./deploy
+
+  publish-web-deploy:
+    name: Publishing to GitHub Pages
+    permissions:
+        contents: read
+        pages: write
+        id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: publish-web-build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
