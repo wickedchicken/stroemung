@@ -114,7 +114,9 @@ pub async fn run(args: Args) {
 
     let scaling = 4;
 
-    let mut image = Image::gen_image_color(w as u16, h as u16, WHITE);
+    let background_color = Color::from_hex(0xfdf6e3);
+
+    let mut image = Image::gen_image_color(w as u16, h as u16, background_color);
 
     let texture = Texture2D::from_image(&image);
 
@@ -123,7 +125,7 @@ pub async fn run(args: Args) {
     loop {
         let (mouse_x, mouse_y) = mouse_position();
 
-        clear_background(WHITE);
+        clear_background(background_color);
 
         root_ui().window(
             hash!(),
@@ -207,7 +209,7 @@ pub async fn run(args: Args) {
             &texture,
             0.,
             0.,
-            WHITE,
+            background_color,
             DrawTextureParams {
                 dest_size: Some(vec2((w * scaling) as f32, (h * scaling) as f32)),
                 ..Default::default()
