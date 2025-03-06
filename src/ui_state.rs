@@ -19,7 +19,7 @@ pub struct UiState {
 
 pub fn initialize_state() -> UiState {
     UiState {
-        keep_running: false,
+        keep_running: true,
         run: false,
         reset: false,
         color_type: ColorType::Speed,
