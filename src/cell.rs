@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::types::Velocity;
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum BoundaryCell {
     Inflow { velocity: Velocity },
     Outflow,
@@ -16,7 +16,7 @@ impl fmt::Display for BoundaryCell {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Cell {
     Fluid,
     Boundary(BoundaryCell),

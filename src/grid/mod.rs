@@ -199,7 +199,7 @@ impl SimulationGrid {
         [north, south, east, west]
     }
 
-    fn rebuild_boundary_list(&mut self) -> Result<(), SimulationGridError> {
+    pub fn rebuild_boundary_list(&mut self) -> Result<(), SimulationGridError> {
         let mut fluid_cells = 0;
         self.boundaries.boundaries.clear();
         self.boundaries.u_v_restore = Vec::new();
