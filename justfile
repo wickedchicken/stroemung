@@ -1,7 +1,7 @@
 #!/usr/bin/env just --justfile
 
 @default:
-    just -f justfile --list --no-aliases
+    just -f {{ justfile() }} --list --no-aliases
 
 clippy:
     cargo clippy --all-targets --all-features --workspace -- -D warnings
