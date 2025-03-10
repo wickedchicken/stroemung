@@ -1,11 +1,12 @@
 #!/usr/bin/env just --justfile
 
 @default:
-    just -f {{justfile()}} --list --no-aliases
+    just -f {{ justfile() }} --list --no-aliases
 
 check:
     ruff check *.py
     ruff format --check *.py
+    just -f {{ justfile() }} --unstable --fmt --check
 
 test:
     pytest

@@ -35,8 +35,6 @@ jobs:
         with:
           components: rustfmt
       - uses: Swatinem/rust-cache@v2
-      - name: Check justfile formatting
-        run: just -f justfile --unstable --fmt --check
       - name: Check formatting
         run: just -f justfile fmt-check
 
