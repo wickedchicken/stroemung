@@ -102,6 +102,16 @@ To run all checks and tests, run:
   just check-and-test
   ```
 
+You can also serve a local version of the web app using `python3 -m http.server` via:
+
+```shell
+just serve
+```
+
+That creates a symlinked directory to `index.html`, and `stroemung.wasm`, meaning you
+can recompile and refresh the page to see the new web app. Note that browsers
+might cache the `.wasm` file so make sure to force reload.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on what's in the `justfile`.
 
 ## Generating test data
