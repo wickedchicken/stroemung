@@ -6,8 +6,11 @@
 clippy:
     cargo clippy --all-targets --all-features --workspace -- -D warnings
 
+fmt:
+    cargo fmt --all
+
 fmt-check:
-    cargo fmt --check
+    cargo fmt --all -- --check
 
 docs $RUSTDOCFLAGS="-D warnings":
     cargo doc --no-deps --document-private-items --all-features --workspace

@@ -91,6 +91,19 @@ for details. For example, to increase the Reynolds number of the simulated fluid
 cargo run --release -- --reynolds 400
 ```
 
+## Testing/Development
+
+Many useful commands are encoded in the `justfile`. You will need to install [`just`][just] to run them. You can do so via your system package
+manager or the `just` releases page.
+
+To run all checks and tests, run:
+
+  ```shell
+  just check-and-test
+  ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on what's in the `justfile`.
+
 ## Generating test data
 
 There is a Python script in the [`python/`](python/) directory which will generate
@@ -111,3 +124,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [nast2d]: https://ins.uni-bonn.de/content/software-nast2d
 [book]: https://epubs.siam.org/doi/10.1137/1.9780898719703
+[just]: https://github.com/casey/just

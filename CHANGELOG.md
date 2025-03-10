@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Top-level `justfile` to encode some common development tasks.
+
 ## [0.1.1] - 2025-03-06
 
 ### Added

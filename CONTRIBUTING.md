@@ -49,32 +49,54 @@ cargo test
 
 ### Useful Commands
 
-- Build and run release version:
+Many useful commands are encoded in the `justfile`. The CI system uses the invocations in
+the `justfile`, so using them during development gives a higher confidence that things
+will pass on CI.
+
+You will need to install [`just`][just] to run them. You can do so via your system package
+manager or the `just` releases page.
+
+By default, running `just` by itself will list all actions in the `justfile`:
 
   ```shell
-  cargo build --release && cargo run --release
+  just
+
+  ```
+
+- Run all checks and tests:
+
+  ```shell
+  just check-and-test
   ```
 
 - Run Clippy:
 
   ```shell
-  cargo clippy --all-targets --all-features --workspace
+  just clippy
   ```
 
 - Run all tests:
 
   ```shell
-  cargo test --all-features --workspace
+  just test
   ```
 
 - Check to see if there are code formatting issues
 
   ```shell
-  cargo fmt --all -- --check
+  just fmt-check
   ```
 
 - Format the code in the project
 
   ```shell
-  cargo fmt --all
+  just fmt
   ```
+
+- Build and check the docs:
+
+  ```shell
+  just docs
+  ```
+
+[just]: https://github.com/casey/just
