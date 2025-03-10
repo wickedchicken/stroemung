@@ -147,7 +147,7 @@ jobs:
         run: |
           mkdir -p ./deploy/assets
           cp ./target/wasm32-unknown-unknown/release/stroemung.wasm ./deploy/
-          cp index.html ./deploy/
+          cp html/index.html ./deploy/
           cp -r assets/ ./deploy/
 
       - name: Upload static files as artifact
