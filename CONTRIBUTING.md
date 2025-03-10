@@ -99,4 +99,12 @@ By default, running `just` by itself will list all actions in the `justfile`:
   just docs
   ```
 
+- Create a temporary directory with symlinks to `index.html`, `assets`, and
+  `stroemung.wasm`, then spawn a webserver with `python3 -m http.server` to allow
+  for local development of the web app.
+
+```shell
+just serve
+```
+
 [just]: https://github.com/casey/just
