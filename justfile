@@ -3,6 +3,9 @@
 @default:
     just -f {{ justfile() }} --list --no-aliases
 
+build-release-wasm:
+    cargo build --release --target wasm32-unknown-unknown
+
 clippy:
     cargo clippy --all-targets --all-features --workspace -- -D warnings
 
