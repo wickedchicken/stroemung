@@ -8,6 +8,10 @@ check:
     ruff format --check *.py
     just -f {{ justfile() }} --unstable --fmt --check
 
+fmt:
+    ruff format *.py
+    just -f {{ justfile() }} --unstable --fmt
+
 test:
     pytest
 
