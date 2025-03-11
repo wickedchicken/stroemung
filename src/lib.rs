@@ -7,7 +7,7 @@ pub mod types;
 pub mod ui_state;
 pub mod visualization;
 
-use crate::ui_state::{initialize_state, MouseState};
+use crate::ui_state::{initialize_state, MouseState, Preset};
 use crate::visualization::render_simulation;
 use crate::visualization::ColorType;
 use std::fs::File;
@@ -16,9 +16,10 @@ use std::path::Path;
 
 use args::Args;
 use cell::{BoundaryCell, Cell};
-use grid::{presets, SimulationGrid};
+use grid::{presets, SimulationGrid, UnfinalizedSimulationGrid};
 use math::Real;
 use simulation::{Simulation, UnfinalizedSimulation};
+use strum::VariantNames;
 use types::GridIndex;
 
 use macroquad::prelude::*;
@@ -76,7 +77,7 @@ fn draw_cells(grid: &mut SimulationGrid, cell_type: Cell, m_x: usize, m_y: usize
     }
 }
 
-fn get_sim(args: &Args) -> Simulation {
+fn get_sim(args: &Args, preset: Preset) -> Simulation {
     match &args.sim_file {
         Some(filename) => {
             let file = File::open(Path::new(&filename)).unwrap();
@@ -84,6 +85,9 @@ fn get_sim(args: &Args) -> Simulation {
         }
         _ => {
             let size = [args.x_cells, args.y_cells];
+            let grid: UnfinalizedSimulationGrid = match preset {
+                Preset::Obstacle => presets::obstacle(size).into(),
+            };
             Simulation::try_from(UnfinalizedSimulation {
                 size,
                 cell_size: [args.x_cell_width, args.y_cell_height],
@@ -96,7 +100,7 @@ fn get_sim(args: &Args) -> Simulation {
                 iterations: 0,
                 time: 0.0,
                 omega: args.omega,
-                grid: presets::obstacle(size).into(),
+                grid,
             })
             .unwrap()
         }
@@ -106,7 +110,7 @@ fn get_sim(args: &Args) -> Simulation {
 pub async fn run(args: Args) {
     println!("Exécute des simulations...");
 
-    let mut sim = get_sim(&args);
+    let mut sim = get_sim(&args, Preset::Obstacle);
 
     println!("Grid size {} x {}", sim.size[0], sim.size[1]);
 
@@ -130,9 +134,9 @@ pub async fn run(args: Args) {
         root_ui().window(
             hash!(),
             Vec2::new(20., (h * scaling) as f32 + 105.),
-            Vec2::new(200., 250.),
+            Vec2::new(200., 280.),
             |ui| {
-                ui.group(hash!(), vec2(190.0, 245.0), |ui| {
+                ui.group(hash!(), vec2(190.0, 275.0), |ui| {
                     ui.label(None, "Controls");
 
                     if ui.button(None, "Run / Pause") {
@@ -167,6 +171,16 @@ pub async fn run(args: Args) {
                     if ui.button(None, "Reset Simulation") {
                         ui_state.reset = true;
                     }
+                    let mut preset_index = 0;
+                    ui.combo_box(hash!(), "Preset", Preset::VARIANTS, &mut preset_index);
+                    let desired_preset = Preset::try_from(preset_index).unwrap();
+                    if ui_state.preset != desired_preset {
+                        ui_state.reset = true;
+                    }
+                    ui_state.preset = desired_preset;
+                    if ui.button(None, "Reset Simulation") {
+                        ui_state.reset = true;
+                    }
                     if ui.button(None, "Mouse Inspects") {
                         ui_state.mouse_state = MouseState::Inspection;
                     }
@@ -181,7 +195,7 @@ pub async fn run(args: Args) {
         );
 
         if ui_state.reset {
-            sim = get_sim(&args);
+            sim = get_sim(&args, ui_state.preset);
             ui_state.reset = false;
         }
 
