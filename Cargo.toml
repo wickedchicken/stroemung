@@ -1,6 +1,6 @@
 [package]
 name = "stroemung"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A Computational Fluid Dynamics (CFD) simulator in Rust"
 repository = "https://github.com/wickedchicken/stroemung"
