@@ -87,6 +87,7 @@ fn get_sim(args: &Args, preset: Preset) -> Simulation {
             let size = [args.x_cells, args.y_cells];
             let grid: UnfinalizedSimulationGrid = match preset {
                 Preset::Obstacle => presets::obstacle(size).into(),
+                Preset::Inflow => presets::simple_inflow(size).into(),
             };
             Simulation::try_from(UnfinalizedSimulation {
                 size,
@@ -123,6 +124,8 @@ pub async fn run(args: Args) {
     let mut image = Image::gen_image_color(w as u16, h as u16, background_color);
 
     let texture = Texture2D::from_image(&image);
+
+    let mut preset_index = 0;
 
     let mut ui_state = initialize_state();
 
@@ -171,7 +174,6 @@ pub async fn run(args: Args) {
                     if ui.button(None, "Reset Simulation") {
                         ui_state.reset = true;
                     }
-                    let mut preset_index = 0;
                     ui.combo_box(hash!(), "Preset", Preset::VARIANTS, &mut preset_index);
                     let desired_preset = Preset::try_from(preset_index).unwrap();
                     if ui_state.preset != desired_preset {
