@@ -20,6 +20,8 @@ pub enum PresetError {
 #[derive(Debug, Copy, Clone, PartialEq, EnumString, strum_macros::VariantNames)]
 pub enum Preset {
     Obstacle,
+    #[strum(serialize = "Empty")]
+    Inflow,
 }
 
 impl TryFrom<usize> for Preset {
@@ -28,6 +30,7 @@ impl TryFrom<usize> for Preset {
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Preset::Obstacle),
+            1 => Ok(Preset::Inflow),
             _ => Err(PresetError::PresetParsingError(format!(
                 "{:?} does not match to a known Preset",
                 value
