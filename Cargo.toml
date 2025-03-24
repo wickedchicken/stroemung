@@ -12,7 +12,7 @@ keywords = ["cfd", "fluid-dynamics", "navier-stokes", "simulation"]
 
 [dependencies]
 clap = { version = "4.5.31", features = ["derive"] }
-macroquad = "0.4.13"
+macroquad = "0.4.14"
 ndarray = { version = "0.16.1", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
