@@ -21,7 +21,7 @@ strum_macros = "0.27.1"
 thiserror = "2.0.12"
 
 [dev-dependencies]
-insta = { version = "1.42.2", features = ["json"] }
+insta = { version = "1.43.0", features = ["json"] }
 
 # Recommended by the insta documentation
 [profile.dev.package]
